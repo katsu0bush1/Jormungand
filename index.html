@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ヨルムンガンド">
+<title>スマスロ ヨルムンガンド 設定判別</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overscroll-behavior:none}
+body{background:#06080c;color:#e0e0e0;font-family:-apple-system,BlinkMacSystemFont,'Hiragino Kaku Gothic ProN',sans-serif;font-size:14px;-webkit-font-smoothing:antialiased}
+button{touch-action:manipulation;font-family:inherit;cursor:pointer;border:none;outline:none}
+input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none}
+input[type=number]{-moz-appearance:textfield}
+
+#W{max-width:520px;margin:0 auto;display:flex;flex-direction:column;height:100vh;height:100dvh;padding-top:env(safe-area-inset-top,0px)}
+
+/* Header - glass effect (ヨルムンガンド=武器商人/ミリタリー基調のティール×アンバー) */
+#hdr{background:rgba(8,14,18,.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);padding:12px 14px 8px;border-bottom:1px solid rgba(38,198,218,.18);flex-shrink:0}
+.hr{display:flex;align-items:center;justify-content:space-between}
+.ht{font-size:16px;font-weight:900;background:linear-gradient(135deg,#4DD0E1,#FFB300);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:.5px}
+.hs{font-size:10px;color:rgba(255,255,255,.35);margin-top:2px}
+.hb{padding:5px 12px;border-radius:8px;font-size:11px;font-weight:700;background:rgba(255,100,100,.08);border:1px solid rgba(255,100,100,.2);color:#ff8a80;backdrop-filter:blur(10px)}
+.hb.p{background:rgba(255,50,50,.15);border-color:rgba(255,50,50,.4);color:#ff5252}
+.cfm{margin-top:6px;padding:5px 10px;border-radius:8px;font-size:11px;font-weight:700;backdrop-filter:blur(10px)}
+
+/* Quick stats */
+.qs{display:flex;gap:5px;flex-wrap:wrap;padding:6px 14px;background:rgba(8,10,16,.95);border-bottom:1px solid rgba(255,255,255,.04);font-size:10px;flex-shrink:0}
+.qc{background:rgba(255,255,255,.04);border-radius:8px;padding:4px 8px;border:1px solid rgba(255,255,255,.06)}
+.ql{color:rgba(255,255,255,.3);margin-right:3px}.qv{color:#80cbc4;font-weight:600}.qe{font-weight:700}
+.qc.hl{background:rgba(255,179,0,.08);border-color:rgba(255,179,0,.25)}
+
+/* Bottom tabs */
+#tabs{display:flex;background:rgba(8,12,16,.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,.06);flex-shrink:0;padding-bottom:env(safe-area-inset-bottom)}
+.tb{flex:1;padding:8px 0 6px;text-align:center;font-size:9px;font-weight:600;color:rgba(255,255,255,.3);transition:color .15s}
+.tb.a{color:#4DD0E1}
+.tb-ic{font-size:18px;display:block;margin-bottom:2px}
+
+/* Scroll area */
+#ct{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;background:#06080c}
+
+/* === Record tab === */
+.inp{padding:12px 14px}
+.ig{display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap}
+.ig label{font-size:11px;color:rgba(255,255,255,.4);white-space:nowrap;font-weight:600}
+.ig input{width:72px;height:36px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:#a5d6a7;font-size:15px;font-weight:700;text-align:center;outline:none;font-family:monospace;transition:border-color .15s}
+.ig input:focus{border-color:rgba(128,203,196,.5);background:rgba(255,255,255,.08)}
+.tot{font-size:10px;color:rgba(255,255,255,.25)}
+
+/* Event grid */
+.eg{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:10px}
+.eb{padding:10px 2px;border-radius:10px;font-size:11px;font-weight:700;text-align:center;line-height:1.2;transition:all .1s;border:1px solid transparent}
+.eb:active{transform:scale(.95)}
+.eb.s{border-color:#4DD0E1;box-shadow:0 0 12px rgba(77,208,225,.25)}
+.e-cz{background:rgba(100,181,246,.12);color:#64b5f6;border-color:rgba(100,181,246,.15)}
+.e-haji{background:rgba(255,82,82,.14);color:#ff7676;border-color:rgba(255,82,82,.2)}
+.e-rb{background:rgba(255,213,79,.1);color:#ffd54f;border-color:rgba(255,213,79,.12)}
+.e-bb{background:rgba(255,167,38,.1);color:#ffa726;border-color:rgba(255,167,38,.12)}
+.e-at{background:rgba(129,199,132,.12);color:#81c784;border-color:rgba(129,199,132,.15)}
+.e-upat{background:rgba(234,128,252,.12);color:#ea80fc;border-color:rgba(234,128,252,.15)}
+.e-yoru{background:rgba(77,208,225,.1);color:#4dd0e1;border-color:rgba(77,208,225,.12)}
+.e-bnend{background:rgba(255,255,255,.04);color:rgba(255,255,255,.5);border-color:rgba(255,255,255,.06)}
+.e-other{background:rgba(255,255,255,.03);color:rgba(255,255,255,.4);border-color:rgba(255,255,255,.05)}
+
+/* Detail inputs */
+.dt{margin-bottom:8px}
+.dt-t{font-size:10px;color:rgba(255,255,255,.35);margin-bottom:4px;font-weight:600}
+.dt-r{display:flex;gap:4px;flex-wrap:wrap}
+.dt-b{padding:6px 10px;border-radius:8px;font-size:11px;font-weight:700;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:rgba(255,255,255,.5);transition:all .1s}
+.dt-b.s{border-color:rgba(77,208,225,.5);color:#4DD0E1;background:rgba(77,208,225,.08)}
+.dt-b:active{transform:scale(.96)}
+.dt-f{width:100%;height:32px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;color:#ccc;font-size:12px;padding:0 10px;outline:none;font-family:inherit;transition:border-color .15s}
+.dt-f:focus{border-color:rgba(128,203,196,.4)}
+
+/* kari-tenjo toggle */
+.yr-wrap{margin:8px 0;padding:8px 10px;border-radius:10px;background:rgba(255,167,38,.06);border:1px solid rgba(255,167,38,.15)}
+.yr-row{display:flex;align-items:center;gap:8px}
+.yr-label{font-size:11px;color:#FFA726;font-weight:700;flex:1}
+.yr-hint{font-size:9px;color:rgba(255,255,255,.3);margin-top:3px;line-height:1.5}
+.yr-tog{width:44px;height:24px;border-radius:12px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);position:relative;transition:all .15s;flex-shrink:0}
+.yr-tog.on{background:rgba(255,167,38,.3);border-color:#FFA726}
+.yr-knob{width:18px;height:18px;border-radius:9px;background:#888;position:absolute;top:2px;left:2px;transition:all .15s}
+.yr-tog.on .yr-knob{left:22px;background:#FFA726}
+
+/* Add button */
+.ab{width:100%;padding:14px;border-radius:12px;font-size:14px;font-weight:900;color:#fff;margin-top:6px;transition:all .1s}
+.ab.ok{background:linear-gradient(135deg,#00838f,#006064);box-shadow:0 4px 16px rgba(0,131,143,.3)}
+.ab.no{background:rgba(255,255,255,.03);color:rgba(255,255,255,.2)}
+.ab:active{transform:scale(.98)}
+
+.rec-t{font-size:10px;color:rgba(255,255,255,.25);padding:8px 14px 4px;font-weight:600}
+
+/* === Timeline table === */
+.tbl{width:100%;border-collapse:collapse;font-size:11px}
+.tbl th{background:rgba(77,208,225,.08);color:rgba(77,208,225,.8);padding:6px 8px;font-weight:700;text-align:center;position:sticky;top:0;z-index:2;backdrop-filter:blur(10px);border-bottom:1px solid rgba(77,208,225,.1)}
+.tbl td{padding:7px 8px;border-bottom:1px solid rgba(255,255,255,.03);vertical-align:top}
+.tbl .gm{text-align:center;font-family:monospace;font-weight:700;color:rgba(255,255,255,.45);white-space:nowrap}
+.tbl .ev{text-align:center;font-weight:700}
+.tbl .nt{color:rgba(255,255,255,.35);font-size:10px}
+.tbl .del-c{text-align:center;width:28px}
+.td-d{width:22px;height:22px;border-radius:6px;background:rgba(255,100,100,.06);border:1px solid rgba(255,100,100,.15);color:#ff8a80;font-size:11px;display:flex;align-items:center;justify-content:center}
+.c-cz{color:#64b5f6}.c-haji{color:#ff7676}.c-rb{color:#ffd54f}.c-bb{color:#ffa726}
+.c-at{color:#81c784}.c-upat{color:#ea80fc}.c-yoru{color:#4dd0e1}
+.c-bnend{color:rgba(255,255,255,.4)}.c-other{color:rgba(255,255,255,.4)}
+.tl-mt{text-align:center;color:rgba(255,255,255,.15);padding:30px;font-size:13px}
+
+/* === Counter tab === */
+.cnt{padding:8px 14px}
+.cs{margin-bottom:10px;border-radius:12px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.02);overflow:hidden}
+.cs-h{padding:10px 12px;background:rgba(255,255,255,.03);display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none}
+.cs-h .t{font-size:13px;font-weight:700;color:rgba(77,208,225,.85)}
+.cs-h .ar{font-size:10px;color:rgba(255,255,255,.2);transition:transform .15s}
+.cs-b{padding:6px 10px 10px}
+.ci{padding:6px 2px;border-bottom:1px solid rgba(255,255,255,.03);display:flex;align-items:center;justify-content:space-between;gap:6px}
+.ci-l{flex:1;min-width:0}.ci-n{font-size:12px;font-weight:600;color:rgba(255,255,255,.7)}
+.ci-h{font-size:9px;color:#FFA726;background:rgba(255,167,38,.1);border-radius:4px;padding:1px 6px;display:inline-block;margin-top:2px;font-weight:700}
+.ci-s{font-size:9px;color:rgba(255,255,255,.25);margin-top:1px}
+.cw{display:flex;align-items:center;gap:4px}
+.cm,.cp2{width:34px;height:34px;border-radius:8px;font-size:17px;font-weight:700;display:flex;align-items:center;justify-content:center;transition:transform .08s}
+.cm{background:rgba(255,100,100,.08);border:1px solid rgba(255,100,100,.15);color:#ff8a80}
+.cp2{background:rgba(100,255,100,.06);border:1px solid rgba(100,255,100,.12);color:#a5d6a7}
+.cm:active,.cp2:active{transform:scale(.88)}
+.vl{min-width:36px;height:34px;border-radius:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:#e0f0fa;font-family:monospace;padding:0 4px}
+
+/* Computed boxes */
+.cc{margin-top:6px;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.02);border:1px solid rgba(255,255,255,.05);font-size:11px}
+.cc-t{color:rgba(77,208,225,.8);font-weight:700;margin-bottom:3px;font-size:12px}
+.cc-l{color:#80cbc4;margin-top:2px}.cc-hl{color:#4DD0E1;font-weight:700}
+.cc-sub{color:rgba(255,255,255,.25);margin-top:2px;font-size:10px}
+
+/* haji hero panel */
+.haji-hero{margin-bottom:10px;border-radius:14px;overflow:hidden;border:1px solid rgba(255,82,82,.25);background:linear-gradient(135deg,rgba(255,82,82,.08),rgba(120,20,20,.04))}
+.haji-hh{padding:10px 12px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none}
+.haji-hh .t{font-size:13px;font-weight:800;color:#ff8a80}
+.haji-hh .ar{font-size:10px;color:rgba(255,255,255,.2)}
+.haji-body{padding:4px 12px 12px}
+.haji-big{text-align:center;padding:10px 0 6px}
+.haji-rate{font-size:34px;font-weight:900;font-family:monospace;line-height:1}
+.haji-lab{font-size:10px;color:rgba(255,255,255,.4);margin-top:2px}
+.haji-est{display:inline-block;margin-top:6px;padding:3px 12px;border-radius:8px;font-size:13px;font-weight:800}
+.haji-cnt-row{display:flex;gap:8px;margin-top:8px}
+.haji-cbox{flex:1;text-align:center;padding:8px 4px;border-radius:10px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06)}
+.haji-cbox .n{font-size:9px;color:rgba(255,255,255,.4);font-weight:600}
+.haji-cbox .v{font-size:22px;font-weight:800;font-family:monospace;color:#fff;margin-top:2px}
+.haji-cnt-ctl{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:6px}
+
+/* setting bar chart for haji */
+.sbar{display:flex;align-items:center;gap:6px;margin-top:5px;font-size:10px}
+.sbar-l{width:30px;font-weight:800;text-align:right}
+.sbar-track{flex:1;height:14px;border-radius:7px;background:rgba(255,255,255,.04);overflow:hidden;position:relative}
+.sbar-fill{height:100%;border-radius:7px;transition:width .3s}
+.sbar-v{width:42px;font-family:monospace;font-weight:700;color:rgba(255,255,255,.55)}
+.sbar.cur .sbar-l,.sbar.cur .sbar-v{color:#fff}
+.sbar.cur .sbar-track{outline:1px solid rgba(255,255,255,.3)}
+
+/* === info tab === */
+.info{padding:10px 14px 24px}
+.isec{margin-bottom:12px;border-radius:12px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.02);overflow:hidden}
+.isec-h{padding:10px 12px;background:rgba(255,255,255,.03);display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none}
+.isec-h .t{font-size:13px;font-weight:700;color:rgba(77,208,225,.85)}
+.isec-h .ar{font-size:10px;color:rgba(255,255,255,.2)}
+.isec-b{padding:8px 12px 12px}
+.itbl{width:100%;border-collapse:collapse;font-size:11px;margin-top:4px}
+.itbl th{background:rgba(77,208,225,.06);color:rgba(77,208,225,.7);padding:5px 6px;font-weight:700;text-align:left}
+.itbl td{padding:5px 6px;border-top:1px solid rgba(255,255,255,.04);vertical-align:top;color:rgba(255,255,255,.6)}
+.itbl td.v{text-align:right;white-space:nowrap;font-family:monospace;color:#80cbc4;font-weight:700}
+.ibadge{display:inline-block;font-size:10px;font-weight:800;padding:1px 7px;border-radius:5px;color:#06080c}
+.inote{font-size:10px;color:rgba(255,255,255,.3);margin-top:6px;line-height:1.5}
+.idot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px;vertical-align:middle}
+.cyc3{margin-top:6px;border-radius:10px;overflow:hidden;border:1px solid rgba(77,208,225,.12)}
+.cyc3 table{width:100%;border-collapse:collapse;font-size:11px}
+.cyc3 th{background:rgba(77,208,225,.1);color:rgba(77,208,225,.85);padding:5px 4px;font-weight:700}
+.cyc3 td{padding:5px 4px;text-align:center;border-top:1px solid rgba(255,255,255,.04);font-family:monospace;font-weight:700}
+.cyc3 tr.cur{background:rgba(77,208,225,.08)}
+
+/* === Export tab === */
+.exp{padding:14px}
+.exp-h{font-size:12px;color:rgba(77,208,225,.7);font-weight:700;margin-bottom:6px}
+.exp-ta{width:100%;min-height:300px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:12px;color:#b0d8d8;font-size:11px;font-family:monospace;white-space:pre-wrap;resize:none;outline:none;-webkit-user-select:all;user-select:all}
+</style>
+</head>
+<body>
+<div id="W"><div id="hdr"></div><div class="qs" id="qs"></div><div id="ct"></div><div id="tabs"></div></div>
+<script>
+/* ========================================================================
+   スマスロ ヨルムンガンド 設定判別ツール（山佐ネクスト・2026/4/6導入）
+
+   ◆ 設計方針 ◆
+   ・各要素を並べて表示。機械的な総合点は出さない。
+   ・「恥の世紀（上位CZ）成功率」が最重要・最大の設定差 → メイン判別軸。
+     設1=16.0% 設2=16.4% 設3=16.8% 設4=25.0% 設5=46.9% 設6=57.4%
+     設4以上で跳ね上がるため、成功率の実測を期待値に最近接マッチさせる。
+   ・恥の世紀は「突入」「成功」の2カウント＋レア役成功は任意内訳。
+   ・CZは通常時/確定CZを区別。設定推測の分母は通常時CZ(czNormal)のみ。
+   ・仮天井(450G+α)は、除外ケース（設定変更後・恥の世紀後）は記録しない
+     運用で母数管理（ツールに入れた数＝有効母数とする）。
+
+   ◆ 解析データ（2026年・なな徹/一撃準拠） ◆
+   CZ出現率: 1=1/194.2 2=1/188.6 3=1/175.7 4=1/169.4 5=1/167.8 6=1/167.2
+   AT初当たり: 1=1/333.8 2=1/323.3 3=1/305.4 4=1/291.6 5=1/291.1 6=1/290.1
+   仮天井(450G+α)選択率: 1=33.6% 2=40.2% 3=45.3% 4=49.2% 5=49.6% 6=50.0%
+   機械割: 1=97.8% 〜 6=113.9%
+   ======================================================================== */
+
+var SK="yoru1";
+var SC={1:"#78909C",2:"#42A5F5",3:"#66BB6A",4:"#FFA726",5:"#EF5350",6:"#AB47BC"};
+
+/* 設定別 参考値 */
+var REF={
+cz:{1:194.2,2:188.6,3:175.7,4:169.4,5:167.8,6:167.2},      /* CZ出現率(通常時) 1/x */
+at:{1:333.8,2:323.3,3:305.4,4:291.6,5:291.1,6:290.1}       /* AT初当たり 1/x */
+};
+/* 恥の世紀 成功期待度(%) — 最大の設定差・メイン判別 */
+var HAJI={1:16.0,2:16.4,3:16.8,4:25.0,5:46.9,6:57.4};
+/* 仮天井(450G+α)選択率(%) */
+var KARI={1:33.6,2:40.2,3:45.3,4:49.2,5:49.6,6:50.0};
+var KAPPA={1:97.8,2:99.5,3:101.8,4:106.0,5:109.8,6:113.9}; /* 機械割(参考) */
+
+/* イベント定義 */
+var EVS=[
+{id:"cz",l:"CZ",c:"c-cz",cat:"cz"},
+{id:"haji",l:"恥の世紀",c:"c-haji",cat:"haji"},
+{id:"rb",l:"RB",c:"c-rb",cat:"bn"},
+{id:"bb",l:"BB",c:"c-bb",cat:"bn"},
+{id:"at",l:"AT初当たり",c:"c-at",cat:"at"},
+{id:"upat",l:"上位AT",c:"c-upat",cat:"upat"},
+{id:"yoru",l:"ヨルムンガンドBN",c:"c-yoru",cat:"bn"},
+{id:"bnend",l:"AT/BN終了",c:"c-bnend",cat:"bnend"},
+{id:"other",l:"その他",c:"c-other",cat:"other"}
+];
+var EVBTNS=[
+{id:"cz",l:"CZ",c:"e-cz"},
+{id:"haji",l:"恥の世紀",c:"e-haji"},
+{id:"rb",l:"RB",c:"e-rb"},
+{id:"bb",l:"BB",c:"e-bb"},
+{id:"at",l:"AT初当",c:"e-at"},
+{id:"upat",l:"上位AT",c:"e-upat"},
+{id:"yoru",l:"ヨルムンBN",c:"e-yoru"},
+{id:"bnend",l:"AT/BN終了",c:"e-bnend"},
+{id:"other",l:"その他",c:"e-other"}
+];
+
+/* CZ：通常時か確定CZか（分母管理） */
+var CZ_KIND=[{id:"normal",l:"通常時CZ"},{id:"kakutei",l:"確定CZ"}];
+var CZ_RES=[{id:"s",l:"成功"},{id:"f",l:"失敗"}];
+/* 恥の世紀：結果＋（任意）レア役成功内訳 */
+var HAJI_RES=[{id:"s",l:"成功"},{id:"f",l:"失敗"}];
+var HAJI_RARE=[{id:"none",l:"通常成功/記録なし"},{id:"rare",l:"レア役成功"}];
+/* AT/BN終了画面 */
+var END_SCR=[{id:"def",l:"デフォルト"},{id:"han",l:"高設定示唆"},{id:"s6",l:"設6示唆"}];
+
+/* カウンター（示唆系・自力カウント系） */
+var CNTS=[
+{id:"karis",t:"⏱️ 仮天井(450G+α)選択率",items:[
+{k:"kariTotal",l:"母数（通常スタートの規定到達回数）",s:"設定変更後/恥の世紀後は除外して記録"},
+{k:"kari450",l:"↑ うち 仮天井(450G+α) 選択",s:"設1:33.6% → 設6:50.0%"}]},
+{id:"card",t:"🃏 サブ液晶カード（50G到達示唆）",items:[
+{k:"cMao",l:"マオ",s:"基本",dot:"#90A4AE"},
+{k:"cUgo",l:"ウゴ",h:"奇数",s:"奇数設定示唆",dot:"#42A5F5"},
+{k:"cTojo",l:"トージョ",h:"偶数",s:"偶数設定示唆",dot:"#66BB6A"},
+{k:"cWairi",l:"ワイリ",h:"高設定弱",s:"高設定示唆(弱)",dot:"#FFA726"},
+{k:"cLehm",l:"レーム",h:"高設定強",s:"高設定示唆(強)",dot:"#EF5350"},
+{k:"cYoKo",l:"ヨナ＆ココ",h:"2・4・6",s:"偶数(設2・4・6)示唆",dot:"#AB47BC"}]},
+{id:"reg",t:"🎨 REG中キャラ紹介（背景色）",items:[
+{k:"rBlueA",l:"青A（ココ等）",h:"奇数",s:"奇数設定示唆",dot:"#42A5F5"},
+{k:"rBlueB",l:"青B（トージョ等）",h:"偶数",s:"偶数設定示唆",dot:"#64B5F6"},
+{k:"rBlueC",l:"青C（チェキータ等）",h:"高設定",s:"高設定示唆",dot:"#26C6DA"},
+{k:"rGreen",l:"緑",h:"設2↑",s:"設定2以上",dot:"#66BB6A"},
+{k:"rRed",l:"赤",h:"設4↑",s:"設定4以上",dot:"#EF5350"},
+{k:"rGold",l:"金（ココ幼少期）",h:"設6",s:"設定6濃厚",dot:"#FFD700"}]},
+{id:"end",t:"🏁 ボーナス終了画面",items:[
+{k:"eHaka",l:"博士3人",h:"高設定",s:"高設定示唆",dot:"#26C6DA"},
+{k:"eYugata",l:"夕方",h:"奇数",s:"奇数設定示唆",dot:"#42A5F5"},
+{k:"eBalme",l:"バルメ",h:"偶数",s:"偶数設定示唆",dot:"#66BB6A"},
+{k:"eHandgun",l:"ハンドガンと薬莢",h:"設2否定+設5↑",s:"設2否定／設5以上示唆",dot:"#EF5350"},
+{k:"eKoko",l:"旧ココ部隊",h:"2・4・6",s:"偶数(設2・4・6)示唆",dot:"#AB47BC"},
+{k:"eCasper",l:"キャスパー",h:"設4↑",s:"設定4以上",dot:"#FFA726"},
+{k:"eKakashi",l:"黄金の畑のカカシ",h:"設6",s:"設定6濃厚",dot:"#FFD700"}]}
+];
+var ALL_CC_KEYS=[];
+CNTS.forEach(function(s){s.items.forEach(function(it){ALL_CC_KEYS.push(it.k)})});
+
+/* ===== 状態 ===== */
+var CC={};            /* カウンター値 */
+var LOG=[];           /* タイムライン */
+var COL={};           /* 折りたたみ状態(counter) */
+var infoCol={};       /* 折りたたみ状態(info) */
+var TAB="rec";
+var inAT=false;       /* AT/上位AT/各種BN中フラグ（totalG区切り用） */
+var curEv=null,curG="",curRes=null,curCztrig=null,curKari=null,curScr=null,curNote="",curMai="",curHrare=null;
+var rstP=false,rstT=null;
+
+function initC(){
+ALL_CC_KEYS.forEach(function(k){CC[k]=0});
+CNTS.forEach(function(s){COL[s.id]=false});
+COL["haji"]=false;
+}
+
+function load(){
+initC();
+try{var d=JSON.parse(localStorage.getItem(SK+"c"));if(d)for(var k in d)if(k in CC)CC[k]=d[k]}catch(e){}
+try{LOG=JSON.parse(localStorage.getItem(SK+"l"))||[]}catch(e){LOG=[]}
+inAT=false;
+for(var i=LOG.length-1;i>=0;i-=1){
+var ev=LOG[i].ev;
+if(ev==="bnend"){inAT=false;break}
+if(ev==="at"||ev==="upat"||ev==="rb"||ev==="bb"||ev==="yoru"){inAT=true;break}
+}
+}
+
+function save(){try{
+localStorage.setItem(SK+"c",JSON.stringify(CC));
+localStorage.setItem(SK+"l",JSON.stringify(LOG));
+}catch(e){}}
+
+/* 推定設定（1/x系：実測に最も近い設定を返す） */
+function estX(key,v){var r=REF[key];if(!r||!v||v===Infinity)return null;var c=1,m=Infinity;for(var s=1;s<=6;s++){var d=Math.abs(v-r[s]);if(d<m){m=d;c=s}}return c}
+/* 推定設定（%系の汎用：tableは{1..6}の%） */
+function estPct(table,v){if(v==null||isNaN(v))return null;var c=1,m=Infinity;for(var s=1;s<=6;s++){var d=Math.abs(v-table[s]);if(d<m){m=d;c=s}}return c}
+function rate(n,d){return d?(n/d*100).toFixed(1):"0"}
+function gev(id){for(var i=0;i<EVS.length;i++)if(EVS[i].id===id)return EVS[i];return null}
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;")}
+
+/* 総ゲーム数：AT/上位AT/RB/BB/ヨルムンBN/bnendで区切り、bnendで確定加算 */
+function totalG(){
+/* 各イベントのgは「前回BN終了後からの通常消化G（累計）」。
+   AT/各種BN当選イベントのgもその区間の通常消化Gを表すので集計対象に含める。
+   bnend（AT/BN中のG数）は通常Gに含めず、そこで区間を確定させてリセットする。 */
+var total=0,maxInInterval=0;
+for(var i=0;i<LOG.length;i++){
+var e=LOG[i],g=parseInt(e.g)||0;
+if(e.ev==="bnend"){total=total+maxInInterval;maxInInterval=0;continue}
+if(g>maxInInterval)maxInInterval=g}
+total=total+maxInInterval;
+return total}
+
+/* 集計：CZの通常/確定を分離（czNormalを確率母数に使う）、恥の世紀の成否 */
+function stats(){
+var s={
+cz:0,czNormal:0,czNormalS:0,czKakutei:0,czS:0,
+haji:0,hajiS:0,hajiRare:0,hajiRareS:0,
+atFirst:0,rb:0,bb:0,yoru:0,upat:0
+};
+for(var i=0;i<LOG.length;i++){var e=LOG[i];
+if(e.ev==="cz"){
+s.cz=s.cz+1;
+if(e.cztrig==="kakutei"){s.czKakutei=s.czKakutei+1}
+else{s.czNormal=s.czNormal+1;if(e.res==="s")s.czNormalS=s.czNormalS+1}
+if(e.res==="s")s.czS=s.czS+1;
+}
+if(e.ev==="haji"){
+s.haji=s.haji+1;if(e.res==="s")s.hajiS=s.hajiS+1;
+if(e.hrare==="rare"){s.hajiRare=s.hajiRare+1;if(e.res==="s")s.hajiRareS=s.hajiRareS+1}
+}
+if(e.ev==="at")s.atFirst=s.atFirst+1;
+if(e.ev==="rb")s.rb=s.rb+1;
+if(e.ev==="bb")s.bb=s.bb+1;
+if(e.ev==="yoru")s.yoru=s.yoru+1;
+if(e.ev==="upat")s.upat=s.upat+1;
+}
+return s}
+
+/* 確定示唆からの最低設定 */
+function cMin(){var m=0;
+if(CC.rGold||CC.eKakashi)m=6;
+else if(CC.eHandgun)m=Math.max(m,5);            /* 設5以上示唆（最低保証としては扱い注意だが運用上5↑） */
+else if(CC.rRed||CC.eCasper)m=Math.max(m,4);
+else if(CC.rGreen)m=Math.max(m,2);
+return m}
+
+function render(){rHdr();rQS();rTabs();
+if(TAB==="rec")rRec();else if(TAB==="cnt")rCnt();else if(TAB==="tl")rTL();else if(TAB==="info")rInfo();else rExp()}
+
+function rHdr(){
+var h='<div class="hr"><div><div class="ht">スマスロ ヨルムンガンド</div><div class="hs">'+(inAT?'【AT/BN中】':'通常時')+' / '+LOG.length+'件</div></div>';
+h=h+'<button type="button" class="hb'+(rstP?' p':'')+'" id="bR">'+(rstP?'確定？':'リセット')+'</button></div>';
+var cm=cMin();if(cm>0)h=h+'<div class="cfm" style="background:'+SC[cm]+'22;border:1px solid '+SC[cm]+';color:'+SC[cm]+'">🎯 設定'+cm+'以上示唆</div>';
+document.getElementById("hdr").innerHTML=h;
+var b=document.getElementById("bR");if(b){b.addEventListener("click",function(e){e.preventDefault();doRst()})}}
+
+function rQS(){
+var s=stats(),tG=totalG(),h="";
+h=h+'<div class="qc"><span class="ql">総G</span> <span class="qv">'+tG+'</span></div>';
+/* 恥の世紀 成功率（最重要・先頭ハイライト） */
+if(s.haji>0){var hr=parseFloat(rate(s.hajiS,s.haji)),eh=estPct(HAJI,hr);
+h=h+'<div class="qc hl"><span class="ql">恥の世紀</span> <span class="qv">'+hr.toFixed(1)+'%</span>'+(eh?' <span class="qe" style="color:'+SC[eh]+'">設'+eh+'</span>':'')+'</div>'}
+/* CZ出現率（通常時CZのみ） */
+if(tG>0&&s.czNormal>0){var v=tG/s.czNormal,e=estX("cz",v);h=h+'<div class="qc"><span class="ql">CZ(通常)</span> <span class="qv">1/'+v.toFixed(1)+'</span>'+(e?' <span class="qe" style="color:'+SC[e]+'">設'+e+'</span>':'')+'</div>'}
+/* AT初当たり */
+if(tG>0&&s.atFirst>0){var v2=tG/s.atFirst,e2=estX("at",v2);h=h+'<div class="qc"><span class="ql">AT初当</span> <span class="qv">1/'+v2.toFixed(1)+'</span>'+(e2?' <span class="qe" style="color:'+SC[e2]+'">設'+e2+'</span>':'')+'</div>'}
+/* 仮天井選択率 */
+if(CC.kariTotal>0){var kr=parseFloat(rate(CC.kari450,CC.kariTotal)),ek=estPct(KARI,kr);h=h+'<div class="qc"><span class="ql">仮天井</span> <span class="qv">'+kr.toFixed(1)+'%</span>'+(ek?' <span class="qe" style="color:'+SC[ek]+'">設'+ek+'</span>':'')+'</div>'}
+document.getElementById("qs").innerHTML=h}
+
+function rTabs(){
+var ts=[{id:"rec",ic:"✏️",l:"記録"},{id:"cnt",ic:"🔢",l:"カウンター"},{id:"tl",ic:"📋",l:"履歴"},{id:"info",ic:"📖",l:"示唆"},{id:"exp",ic:"📤",l:"出力"}];
+var h="";for(var i=0;i<ts.length;i++)h=h+'<div class="tb'+(TAB===ts[i].id?' a':'')+'" data-tab="'+ts[i].id+'"><span class="tb-ic">'+ts[i].ic+'</span>'+ts[i].l+'</div>';
+document.getElementById("tabs").innerHTML=h}
+
+function rRec(){
+var ct=document.getElementById("ct"),h='<div class="inp">';
+h=h+'<div class="ig"><label>'+(inAT?'【AT/BN中】G数':'累計G（前回BN終了後から）')+'</label><input type="number" inputmode="numeric" id="iG" value="'+esc(curG)+'" placeholder="0">';
+h=h+'<span class="tot">(総G: '+totalG()+')</span></div>';
+h=h+'<div class="eg">';
+for(var i=0;i<EVBTNS.length;i++){var eb=EVBTNS[i];
+h=h+'<button type="button" class="eb '+eb.c+(curEv===eb.id?' s':'')+'" data-ev="'+eb.id+'">'+eb.l+'</button>'}
+h=h+'</div>';
+if(curEv){
+var ev=gev(curEv);
+/* CZ：通常/確定 ＋ 成否 */
+if(curEv==="cz"){
+h=h+'<div class="dt"><div class="dt-t">CZ種別（分母管理）</div><div class="dt-r">';
+for(var ik=0;ik<CZ_KIND.length;ik++){var ck=CZ_KIND[ik];h=h+'<button type="button" class="dt-b'+(curCztrig===ck.id?' s':'')+'" data-cztrig="'+ck.id+'">'+ck.l+'</button>'}
+h=h+'</div><div class="yr-hint" style="margin-top:4px">設定推測の分母は<b>通常時CZのみ</b>。確定CZ（恥の世紀後・特定契機など）は分母から除外して集計します。</div></div>';
+h=h+'<div class="dt"><div class="dt-t">結果</div><div class="dt-r">';
+for(var i2=0;i2<CZ_RES.length;i2++){var r=CZ_RES[i2];h=h+'<button type="button" class="dt-b'+(curRes===r.id?' s':'')+'" data-res="'+r.id+'">'+r.l+'</button>'}
+h=h+'</div></div>';
+}
+/* 恥の世紀：結果 ＋ レア役内訳（任意） */
+if(curEv==="haji"){
+h=h+'<div class="dt"><div class="dt-t">結果（最重要・最大の設定差）</div><div class="dt-r">';
+for(var ih=0;ih<HAJI_RES.length;ih++){var hr=HAJI_RES[ih];h=h+'<button type="button" class="dt-b'+(curRes===hr.id?' s':'')+'" data-res="'+hr.id+'">'+hr.l+'</button>'}
+h=h+'</div></div>';
+h=h+'<div class="dt"><div class="dt-t">内訳（任意）</div><div class="dt-r">';
+for(var ihr=0;ihr<HAJI_RARE.length;ihr++){var hra=HAJI_RARE[ihr];h=h+'<button type="button" class="dt-b'+(curHrare===hra.id?' s':'')+'" data-hrare="'+hra.id+'">'+hra.l+'</button>'}
+h=h+'</div><div class="yr-hint" style="margin-top:4px">成功期待度の設定差が最大（設1=16% → 設6=57%）。突入と成否を必ず記録。</div></div>';
+}
+/* AT/上位AT/各種BN：獲得枚数（任意） */
+if(ev&&(ev.cat==="at"||ev.cat==="upat"||ev.cat==="bn")){
+h=h+'<div class="dt"><div class="dt-t">獲得枚数（任意）</div><input type="number" inputmode="numeric" class="dt-f" id="iMai" value="'+esc(curMai)+'" placeholder="枚数"></div>'}
+/* 終了：終了画面＋トータル枚数 */
+if(curEv==="bnend"){
+h=h+'<div class="dt"><div class="dt-t">終了画面</div><div class="dt-r">';
+for(var i4=0;i4<END_SCR.length;i4++){var sc=END_SCR[i4];h=h+'<button type="button" class="dt-b'+(curScr===sc.id?' s':'')+'" data-scr="'+sc.id+'">'+sc.l+'</button>'}
+h=h+'</div></div>';
+h=h+'<div class="dt"><div class="dt-t">トータル獲得枚数（任意）</div><input type="number" inputmode="numeric" class="dt-f" id="iMai" value="'+esc(curMai)+'" placeholder="枚数"></div>';
+}
+h=h+'<div class="dt"><input type="text" class="dt-f" id="iN" placeholder="メモ（任意）" value="'+esc(curNote)+'"></div>'}
+var ok=!!curEv;
+h=h+'<button type="button" class="ab '+(ok?'ok':'no')+'" data-a="add">'+(ok?'✓ 記録する':'↑ イベントを選択')+'</button></div>';
+if(LOG.length>0){h=h+'<div class="rec-t">直近</div>';h=h+buildTable(Math.max(0,LOG.length-5),LOG.length,true)}
+ct.innerHTML=h}
+
+function buildNote(e){
+var b=[];
+if(e.res)b.push(e.res==="s"?"成功":"失敗");
+if(e.cztrig){var cl={normal:"通常時CZ",kakutei:"確定CZ"};b.push(cl[e.cztrig]||esc(e.cztrig))}
+if(e.hrare==="rare")b.push("レア役成功");
+if(e.scr){var sl={def:"デフォルト",han:"高設定示唆",s6:"設6示唆"};b.push("画面："+(sl[e.scr]||esc(e.scr)))}
+if(e.mai)b.push(esc(e.mai)+"枚");
+if(e.note)b.push(esc(e.note));
+return b.join("　");
+}
+
+function buildTable(from,to,mini){
+var h='<table class="tbl"><thead><tr><th style="width:60px">ゲーム数</th><th>当選</th><th>備考</th>'+(mini?'<th style="width:28px"></th>':'')+'</tr></thead><tbody>';
+for(var i=from;i<to;i++){
+var e=LOG[i],ev=gev(e.ev),g=esc(e.g||"0");
+var gFmt;
+if(e.ev==="at"||e.ev==="upat"||e.ev==="rb"||e.ev==="bb"||e.ev==="yoru"||e.ev==="bnend")gFmt='【'+g+'】';
+else gFmt='('+g+')';
+h=h+'<tr><td class="gm">'+gFmt+'</td>';
+h=h+'<td class="ev '+(ev?ev.c:'')+'">'+(ev?ev.l:esc(e.ev))+'</td>';
+h=h+'<td class="nt">'+buildNote(e)+'</td>';
+if(mini)h=h+'<td class="del-c"><button type="button" class="td-d" data-del="'+i+'">×</button></td>';
+h=h+'</tr>'}
+h=h+'</tbody></table>';return h}
+
+function rTL(){
+var ct=document.getElementById("ct");
+if(!LOG.length){ct.innerHTML='<div class="tl-mt">まだ記録がありません</div>';return}
+ct.innerHTML=buildTable(0,LOG.length,true)}
+
+/* === カウンタータブ === */
+function rCnt(){
+var ct=document.getElementById("ct"),tG=totalG(),h='<div class="cnt">';
+h=h+buildHajiSection();
+for(var si=0;si<CNTS.length;si++)h=h+buildCntSection(CNTS[si],tG);
+h=h+'</div>';ct.innerHTML=h}
+
+/* 恥の世紀ヒーローパネル（メイン判別軸） */
+function buildHajiSection(){
+var s=stats();
+var cl=COL["haji"];
+var h='<div class="haji-hero"><div class="haji-hh" data-tog="haji"><div class="t">🔥 恥の世紀 成功率（最重要・最大の設定差）</div><span class="ar">'+(cl?'▶':'▼')+'</span></div>';
+if(!cl){
+h=h+'<div class="haji-body">';
+var rt=s.haji>0?parseFloat(rate(s.hajiS,s.haji)):null;
+var eh=rt!=null?estPct(HAJI,rt):null;
+h=h+'<div class="haji-big">';
+if(rt!=null){
+h=h+'<div class="haji-rate" style="color:'+(eh?SC[eh]:'#fff')+'">'+rt.toFixed(1)+'%</div>';
+h=h+'<div class="haji-lab">成功 '+s.hajiS+' / 突入 '+s.haji+'</div>';
+if(eh)h=h+'<div class="haji-est" style="background:'+SC[eh]+'22;border:1px solid '+SC[eh]+';color:'+SC[eh]+'">実測に最も近い設定 → 設'+eh+'</div>';
+}else{
+h=h+'<div class="haji-rate" style="color:rgba(255,255,255,.2)">—</div><div class="haji-lab">記録タブで恥の世紀を記録すると表示</div>';
+}
+h=h+'</div>';
+/* カウント＋/− */
+h=h+'<div class="haji-cnt-row">';
+h=h+'<div class="haji-cbox"><div class="n">突入</div><div class="v">'+s.haji+'</div><div class="haji-cnt-ctl"><button type="button" class="cm" data-hcnt="ent-">−</button><button type="button" class="cp2" data-hcnt="ent+">＋</button></div></div>';
+h=h+'<div class="haji-cbox"><div class="n">成功</div><div class="v">'+s.hajiS+'</div><div class="haji-cnt-ctl"><button type="button" class="cm" data-hcnt="suc-">−</button><button type="button" class="cp2" data-hcnt="suc+">＋</button></div></div>';
+h=h+'</div>';
+h=h+'<div class="yr-hint" style="margin:6px 2px 0">＋/−は記録タブを使わず素早く増減する用（突入・成功カウンターのみ操作。レア役内訳は記録タブで）。</div>';
+/* 設定別期待値バー */
+h=h+'<div style="margin-top:10px">';
+h=h+'<div style="font-size:10px;color:rgba(255,255,255,.4);font-weight:700;margin-bottom:4px">設定別 成功期待度</div>';
+for(var st=1;st<=6;st++){
+var pct=HAJI[st];var w=(pct/HAJI[6]*100).toFixed(0);
+var isCur=(eh===st);
+h=h+'<div class="sbar'+(isCur?' cur':'')+'"><div class="sbar-l" style="color:'+SC[st]+'">設'+st+'</div>';
+h=h+'<div class="sbar-track"><div class="sbar-fill" style="width:'+w+'%;background:'+SC[st]+(isCur?'':'66')+'"></div></div>';
+h=h+'<div class="sbar-v">'+pct.toFixed(1)+'%</div></div>';
+}
+h=h+'</div>';
+/* レア役成功内訳（任意） */
+if(s.hajiRare>0){
+h=h+'<div class="cc" style="margin-top:8px"><div class="cc-l">レア役成功内訳: '+s.hajiRareS+'/'+s.hajiRare+' ('+rate(s.hajiRareS,s.hajiRare)+'%)</div><div class="cc-sub">記録タブで「レア役成功」を選んだ恥の世紀のみ集計（任意の内訳）</div></div>';
+}
+h=h+'<div class="cc-sub" style="margin-top:6px">※設1〜3はほぼ横ばい(16〜17%)、設4で25%、設5で47%、設6で57%。試行を重ねるほど精度が上がります。少回数では参考程度に。</div>';
+h=h+'</div>';
+}
+h=h+'</div>';
+return h;
+}
+
+function buildCntSection(sec,tG){
+var cl=COL[sec.id];
+var h='<div class="cs"><div class="cs-h" data-tog="'+sec.id+'"><div class="t">'+sec.t+'</div><span class="ar">'+(cl?'▶':'▼')+'</span></div>';
+if(!cl){h=h+'<div class="cs-b">';
+for(var ii=0;ii<sec.items.length;ii++){var it=sec.items[ii];
+h=h+'<div class="ci"><div class="ci-l"><div class="ci-n">';
+if(it.dot)h=h+'<span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+it.dot+';margin-right:4px"></span>';
+h=h+it.l+'</div>';if(it.h)h=h+'<div class="ci-h">'+it.h+'</div>';if(it.s)h=h+'<div class="ci-s">'+it.s+'</div>';
+h=h+'</div><div class="cw"><button type="button" class="cm" data-cd="'+it.k+'">−</button><div class="vl">'+CC[it.k]+'</div><button type="button" class="cp2" data-ci="'+it.k+'">＋</button></div></div>'}
+/* 仮天井：選択率の算出 */
+if(sec.id==="karis"&&CC.kariTotal>0){
+var kr=parseFloat(rate(CC.kari450,CC.kariTotal));var ek=estPct(KARI,kr);
+h=h+'<div class="cc"><div class="cc-l">仮天井選択率: '+CC.kari450+'/'+CC.kariTotal+' ('+kr.toFixed(1)+'%)'+(ek?' <span style="color:'+SC[ek]+';font-weight:700">設'+ek+'付近</span>':'')+'</div>';
+h=h+'<div class="cc-sub">参考: 設1=33.6% 設2=40.2% 設3=45.3% 設4=49.2% 設5=49.6% 設6=50.0%（設4以上で約半数）</div></div>';
+}
+h=h+'</div>'}h=h+'</div>';
+return h}
+
+/* === 示唆タブ === */
+var INFO=[
+{id:"i_haji",t:"🔥 恥の世紀 成功期待度（メイン判別）",rows:[
+["設1","16.0%",1],["設2","16.4%",2],["設3","16.8%",3],
+["設4","25.0%",4],["設5","46.9%",5],["設6","57.4%",6]
+],note:"上位CZ「恥の世紀」の成功率がこの機種で最大の設定差。設1〜3はほぼ横ばいだが、設4以上で大きく跳ね上がる。成功率が25%を超えてくる感触なら設4以上、45%超なら設5・6が濃厚。突入回数が少ないうちは振れ幅が大きい点に注意。"},
+{id:"i_rates",t:"📈 設定別 確率一覧（CZ/AT初当たり）",custom:"rates",note:"CZ出現率は通常時CZのみが母数。AT初当たりはCZ・恥の世紀・各種ボーナス経由を含む総合の初当たり。設定差はCZ・AT初当ともに小さめなので、恥の世紀成功率と併せて判断する。"},
+{id:"i_kari",t:"⏱️ 仮天井(450G+α)選択率",rows:[
+["設1","33.6%",1],["設2","40.2%",2],["設3","45.3%",3],
+["設4","49.2%",4],["設5","49.6%",5],["設6","50.0%",6]
+],note:"通常スタート時の規定到達で450G+αの短い仮天井が選ばれる割合。高設定ほど高い（設4以上で約半数）。設定変更後の初回・恥の世紀後など、抽選条件が異なるケースは母数から除外して記録するのが基本。設5と設6はほぼ同値なので単独では設6確定にならない。"},
+{id:"i_card",t:"🃏 サブ液晶カード（50G到達示唆）",rows:[
+["マオ","基本"],["ウゴ","奇数設定示唆"],["トージョ","偶数設定示唆"],
+["ワイリ","高設定示唆(弱)"],["レーム","高設定示唆(強)"],["ヨナ＆ココ","偶数(設2・4・6)示唆"]
+],note:"通常時50G到達時などに表示されるサブ液晶のカードキャラで設定示唆。レームは高設定示唆が強い。"},
+{id:"i_reg",t:"🎨 REG中キャラ紹介（背景色）",rows:[
+["青A（ココ等）","奇数設定示唆"],["青B（トージョ等）","偶数設定示唆"],["青C（チェキータ等）","高設定示唆"],
+["緑","設定2以上",2],["赤","設定4以上",4],["金（ココ幼少期）","設定6濃厚",6]
+],note:"REG（RB）中のキャラ紹介画面の背景色で示唆。緑以上は色が上がるほど期待度が高い。金は設6濃厚。"},
+{id:"i_end",t:"🏁 ボーナス終了画面",rows:[
+["博士3人","高設定示唆"],["夕方","奇数設定示唆"],["バルメ","偶数設定示唆"],
+["ハンドガンと薬莢","設2否定＋設5以上示唆",5],["旧ココ部隊","偶数(設2・4・6)示唆"],
+["キャスパー","設定4以上",4],["黄金の畑のカカシ","設定6濃厚",6]
+],note:"ボーナス終了時の画面で示唆。ハンドガンと薬莢は設2を否定しつつ設5以上を示唆、黄金の畑のカカシは設6濃厚。"},
+{id:"i_kappa",t:"⚙️ 機械割（参考）",rows:[
+["設1","97.8%",1],["設2","99.5%",2],["設3","101.8%",3],
+["設4","106.0%",4],["設5","109.8%",5],["設6","113.9%",6]
+],note:"参考値。設4から明確にプラス域へ。恥の世紀の成功率が設4以上で跳ねるのと連動している。"}
+];
+
+function buildRatesTable(){
+var s=stats(),tG=totalG();
+var czEst=(tG>0&&s.czNormal>0)?estX("cz",tG/s.czNormal):null;
+var atEst=(tG>0&&s.atFirst>0)?estX("at",tG/s.atFirst):null;
+var h='<div class="cyc3"><table><thead><tr><th>設定</th><th>CZ(通常)</th><th>AT初当</th></tr></thead><tbody>';
+for(var st=1;st<=6;st++){
+var hi=(czEst===st||atEst===st);
+h=h+'<tr'+(hi?' class="cur"':'')+'>';
+h=h+'<td style="color:'+SC[st]+';font-weight:800">設'+st+'</td>';
+h=h+'<td style="color:'+SC[st]+'">1/'+REF.cz[st].toFixed(1)+'</td>';
+h=h+'<td style="color:'+SC[st]+'">1/'+REF.at[st].toFixed(1)+'</td>';
+h=h+'</tr>';
+}
+h=h+'</tbody></table></div>';
+var lines=[];
+if(czEst)lines.push('CZ実測 1/'+(tG/s.czNormal).toFixed(1)+' → 設'+czEst+'付近');
+if(atEst)lines.push('AT初当実測 1/'+(tG/s.atFirst).toFixed(1)+' → 設'+atEst+'付近');
+if(lines.length){
+h=h+'<div class="cc" style="margin-top:8px"><div class="cc-t">あなたの実測</div>';
+for(var li=0;li<lines.length;li++)h=h+'<div class="cc-l">'+lines[li]+'</div>';
+h=h+'<div class="cc-sub">該当設定の行を上の表でハイライトしています</div></div>';
+}else{
+h=h+'<div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:6px">記録タブでCZ（通常時）とAT初当たりを記録すると、実測に近い設定行がハイライトされます。</div>';
+}
+return h;
+}
+
+function rInfo(){
+var ct=document.getElementById("ct");
+var h='<div class="info">';
+h=h+'<div style="font-size:10px;color:rgba(255,255,255,.35);margin-bottom:10px;line-height:1.6">2026年解析（なな徹/一撃準拠）にもとづく設定示唆まとめ。各項目をタップで開閉。<b style="color:#ff8a80">恥の世紀の成功率がこの台の主軸</b>です。</div>';
+for(var i=0;i<INFO.length;i++){
+var sec=INFO[i],cl=infoCol[sec.id];
+h=h+'<div class="isec"><div class="isec-h" data-itog="'+sec.id+'"><div class="t">'+sec.t+'</div><span class="ar">'+(cl?'▶':'▼')+'</span></div>';
+if(!cl){
+h=h+'<div class="isec-b">';
+if(sec.custom==="rates"){h=h+buildRatesTable();}
+else{
+h=h+'<table class="itbl"><tbody>';
+for(var j=0;j<sec.rows.length;j++){
+var row=sec.rows[j];var lvl=row[2];
+h=h+'<tr><td>';
+if(lvl)h=h+'<span class="idot" style="background:'+SC[lvl]+'"></span>';
+h=h+row[0]+'</td><td class="v">';
+if(lvl)h=h+'<span class="ibadge" style="background:'+SC[lvl]+'">'+row[1]+'</span>';
+else h=h+row[1];
+h=h+'</td></tr>';
+}
+h=h+'</tbody></table>';
+}
+if(sec.note)h=h+'<div class="inote">'+sec.note+'</div>';
+h=h+'</div>';
+}
+h=h+'</div>';
+}
+h=h+'</div>';
+ct.innerHTML=h;
+}
+
+/* === 出力タブ === */
+function rExp(){
+var ct=document.getElementById("ct"),s=stats(),tG=totalG();
+var t="━━ スマスロ ヨルムンガンド ━━\n"+new Date().toLocaleString("ja-JP")+"\n\n";
+t=t+"【タイムライン】\n";
+for(var i=0;i<LOG.length;i++){var e=LOG[i],ev=gev(e.ev),g=e.g||"0";
+var gF=(e.ev==="at"||e.ev==="upat"||e.ev==="rb"||e.ev==="bb"||e.ev==="yoru"||e.ev==="bnend")?"【"+g+"】":"("+g+")";
+t=t+gF+"　"+(ev?ev.l:e.ev)+"　"+buildNote(e)+"\n"}
+t=t+"\n【集計】\n総G: "+tG+"\n";
+/* 恥の世紀（主軸） */
+if(s.haji>0){var hr=parseFloat(rate(s.hajiS,s.haji));var eh=estPct(HAJI,hr);
+t=t+"★恥の世紀 成功率: "+s.hajiS+"/"+s.haji+" ("+hr.toFixed(1)+"%)"+(eh?" →設"+eh+"付近":"")+"\n";
+if(s.hajiRare>0)t=t+"　うちレア役成功: "+s.hajiRareS+"/"+s.hajiRare+" ("+rate(s.hajiRareS,s.hajiRare)+"%)\n";
+}
+if(tG>0&&s.czNormal>0){var v=tG/s.czNormal;var e=estX("cz",v);t=t+"CZ(通常時): 1/"+v.toFixed(1)+" ["+s.czNormal+"回]"+(e?" →設"+e+"付近":"")+"\n"}
+if(s.czNormal>0)t=t+"CZ成功(通常): "+s.czNormalS+"/"+s.czNormal+" ("+rate(s.czNormalS,s.czNormal)+"%)\n";
+if(s.czKakutei>0)t=t+"確定CZ: "+s.czKakutei+"回（分母除外）\n";
+if(tG>0&&s.atFirst>0){var v2=tG/s.atFirst;var e2=estX("at",v2);t=t+"AT初当たり: 1/"+v2.toFixed(1)+" ["+s.atFirst+"回]"+(e2?" →設"+e2+"付近":"")+"\n"}
+t=t+"RB:"+s.rb+" BB:"+s.bb+" ヨルムンBN:"+s.yoru+" 上位AT:"+s.upat+"\n";
+if(CC.kariTotal>0){var kr=rate(CC.kari450,CC.kariTotal);var ek=estPct(KARI,parseFloat(kr));t=t+"仮天井選択率: "+CC.kari450+"/"+CC.kariTotal+" ("+kr+"%)"+(ek?" →設"+ek+"付近":"")+"\n"}
+/* 示唆 */
+var sugg=[];
+var labelMap={};CNTS.forEach(function(sec){sec.items.forEach(function(it){labelMap[it.k]=it.l})});
+["cUgo","cTojo","cWairi","cLehm","cYoKo","rBlueA","rBlueB","rBlueC","rGreen","rRed","rGold",
+"eHaka","eYugata","eBalme","eHandgun","eKoko","eCasper","eKakashi"].forEach(function(k){
+if(CC[k]>0)sugg.push(labelMap[k]+"×"+CC[k]);});
+if(sugg.length)t=t+"示唆: "+sugg.join(" / ")+"\n";
+var cm=cMin();if(cm>0)t=t+"★設定"+cm+"以上示唆\n";
+var h='<div class="exp"><div class="exp-h">長押し→すべてを選択→コピー</div>';
+h=h+'<textarea class="exp-ta" id="eTA" readonly>'+t.replace(/</g,"&lt;")+'</textarea></div>';
+ct.innerHTML=h;var ta=document.getElementById("eTA");if(ta){ta.focus();ta.setSelectionRange(0,ta.value.length)}}
+
+/* === 記録追加 === */
+function addEntry(){
+if(!curEv)return;
+var ev=gev(curEv);
+var e={ev:curEv,g:curG||"0"};
+if(curRes)e.res=curRes;
+if(curNote)e.note=curNote;
+if(curMai)e.mai=curMai;
+if(curEv==="cz"){e.cztrig=curCztrig||"normal"}      /* 未選択は通常時扱い */
+if(curEv==="haji"){if(curHrare)e.hrare=curHrare}
+if(curEv==="bnend"){if(curScr)e.scr=curScr}
+/* AT/BN状態フラグ */
+if(curEv==="at"||curEv==="upat"||curEv==="rb"||curEv==="bb"||curEv==="yoru")inAT=true;
+if(curEv==="bnend")inAT=false;
+LOG.push(e);
+curEv=null;curG="";curRes=null;curCztrig=null;curKari=null;curScr=null;curNote="";curMai="";curHrare=null;
+save();render()}
+
+function doRst(){
+if(!rstP){rstP=true;if(rstT)clearTimeout(rstT);rstT=setTimeout(function(){rstP=false;render()},3000);render();return}
+LOG=[];initC();inAT=false;save();rstP=false;render()}
+
+/* === イベントハンドラ（デリゲーション） === */
+document.getElementById("W").addEventListener("click",function(ev){
+var el=ev.target;
+for(var i=0;i<6&&el&&el!==this;i++){if(el.dataset){
+if(el.dataset.tab){TAB=el.dataset.tab;render();return}
+if(el.dataset.ev){curEv=(curEv===el.dataset.ev?null:el.dataset.ev);curRes=null;curCztrig=null;curScr=null;curMai="";curHrare=null;render();return}
+if(el.dataset.res){curRes=(curRes===el.dataset.res?null:el.dataset.res);render();return}
+if(el.dataset.cztrig){curCztrig=(curCztrig===el.dataset.cztrig?null:el.dataset.cztrig);render();return}
+if(el.dataset.hrare){curHrare=(curHrare===el.dataset.hrare?null:el.dataset.hrare);render();return}
+if(el.dataset.scr){curScr=(curScr===el.dataset.scr?null:el.dataset.scr);render();return}
+if(el.dataset.a==="add"){addEntry();return}
+if(el.dataset.del!==undefined){LOG.splice(parseInt(el.dataset.del),1);save();load();render();return}
+if(el.dataset.tog){COL[el.dataset.tog]=!COL[el.dataset.tog];render();return}
+if(el.dataset.itog){infoCol[el.dataset.itog]=!infoCol[el.dataset.itog];render();return}
+/* 恥の世紀クイックカウンター：突入(ent)/成功(suc)を直接LOGに反映 */
+if(el.dataset.hcnt){
+var act=el.dataset.hcnt;
+if(act==="ent+"){LOG.push({ev:"haji",g:"0"});}
+else if(act==="ent-"){for(var j=LOG.length-1;j>=0;j--){if(LOG[j].ev==="haji"){LOG.splice(j,1);break}}}
+else if(act==="suc+"){ /* 成功でない最新のhajiを成功にする。なければ成功hajiを追加 */
+var done=false;for(var j2=LOG.length-1;j2>=0;j2--){if(LOG[j2].ev==="haji"&&LOG[j2].res!=="s"){LOG[j2].res="s";done=true;break}}
+if(!done){LOG.push({ev:"haji",g:"0",res:"s"})}}
+else if(act==="suc-"){for(var j3=LOG.length-1;j3>=0;j3--){if(LOG[j3].ev==="haji"&&LOG[j3].res==="s"){delete LOG[j3].res;break}}}
+save();render();return}
+if(el.dataset.ci){CC[el.dataset.ci]=CC[el.dataset.ci]+1;save();render();return}
+if(el.dataset.cd){var k2=el.dataset.cd;if(CC[k2]>0)CC[k2]=CC[k2]-1;save();render();return}
+}el=el.parentElement}});
+
+document.getElementById("W").addEventListener("input",function(ev){
+if(ev.target.id==="iG")curG=ev.target.value;
+if(ev.target.id==="iN")curNote=ev.target.value;
+if(ev.target.id==="iMai")curMai=ev.target.value;});
+
+load();render();
+</script>
+</body>
+</html>
