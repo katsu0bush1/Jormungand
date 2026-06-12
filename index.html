@@ -34,7 +34,7 @@ input[type=number]{-moz-appearance:textfield}
 
 /* Bottom tabs */
 #tabs{display:flex;background:rgba(8,12,16,.95);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,.06);flex-shrink:0;padding-bottom:env(safe-area-inset-bottom)}
-.tb{flex:1;padding:8px 0 6px;text-align:center;font-size:9px;font-weight:600;color:rgba(255,255,255,.3);transition:color .15s}
+.tb{flex:1;padding:8px 0 6px;text-align:center;font-size:8.5px;font-weight:600;color:rgba(255,255,255,.3);transition:color .15s}
 .tb.a{color:#4DD0E1}
 .tb-ic{font-size:18px;display:block;margin-bottom:2px}
 
@@ -179,6 +179,17 @@ input[type=number]{-moz-appearance:textfield}
 .exp{padding:14px}
 .exp-h{font-size:12px;color:rgba(77,208,225,.7);font-weight:700;margin-bottom:6px}
 .exp-ta{width:100%;min-height:300px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:12px;color:#b0d8d8;font-size:11px;font-family:monospace;white-space:pre-wrap;resize:none;outline:none;-webkit-user-select:all;user-select:all}
+
+/* ===== レア役別CZ：状態タブUI（カバネリのpt集計と同様） ===== */
+.pt-wrap{margin-bottom:10px;border-radius:12px;border:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.02);overflow:hidden}
+.pt-header{padding:10px 12px;background:rgba(255,255,255,.03);display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none}
+.pt-header .t{font-size:13px;font-weight:700;color:rgba(77,208,225,.85)}
+.pt-header .ar{font-size:10px;color:rgba(255,255,255,.2)}
+.pt-tabs{display:flex;gap:0;background:rgba(0,0,0,.3);border-bottom:1px solid rgba(255,255,255,.04)}
+.pt-tab{flex:1;padding:9px 4px;text-align:center;font-size:12px;font-weight:700;color:rgba(255,255,255,.3);border-bottom:2px solid transparent;transition:all .15s}
+.pt-tab.active{border-bottom-color:var(--tab-color,#4DD0E1);color:var(--tab-color,#4DD0E1)}
+.pt-tab:active{opacity:.7}
+.pt-body{padding:8px 12px 12px}
 </style>
 </head>
 <body>
@@ -216,7 +227,20 @@ at:{1:333.8,2:323.3,3:305.4,4:291.6,5:291.1,6:290.1}       /* AT初当たり 1/x
 var HAJI={1:16.0,2:16.4,3:16.8,4:25.0,5:46.9,6:57.4};
 /* 仮天井(450G+α)選択率(%) */
 var KARI={1:33.6,2:40.2,3:45.3,4:49.2,5:49.6,6:50.0};
-var KAPPA={1:97.8,2:99.5,3:101.8,4:106.0,5:109.8,6:113.9}; /* 機械割(参考) */
+/* 確定CZ選択率(%) 設1-3=5.08 / 設4-6=6.25（設1-3, 設4-6で共通） */
+var KAKUTEI={1:5.08,2:5.08,3:5.08,4:6.25,5:6.25,6:6.25};
+var KAPPA={1:97.8,2:98.8,3:100.9,4:104.7,5:109.6,6:113.9}; /* 出玉率(ちょんぼりすた/p-world準拠) */
+
+/* ★成立役ごとのCZ当選率(%) — 設定差が大きく自力カウント推奨の主要判別軸。
+   一撃/パチーモ照合済み。高確の設4以上は共通(null=未判明は近接マッチから除外)。
+   弱レア(弱チェリー/スイカ)は高確時のみ判明。超高確はレア役で当選濃厚(全設定共通)。 */
+var RARECZ={
+chOuNormal:{1:10.16,2:11.33,3:14.06,4:16.02,5:16.41,6:16.80}, /* チャンス目・通常 */
+chOuHigh:  {1:33.59,2:36.72,3:46.09,4:50.00,5:50.00,6:50.00}, /* チャンス目・高確 */
+cheNormal: {1:25.00,2:26.95,3:32.03,4:34.38,5:34.77,6:35.16}, /* 強チェリー・通常 */
+cheHigh:   {1:66.80,2:68.36,3:75.00,4:80.08,5:80.08,6:80.08}, /* 強チェリー・高確 */
+weakHigh:  {1:5.08,2:5.86,3:8.20,4:10.16,5:10.16,6:10.16}     /* 弱レア・高確(設4以上は判明分) */
+};
 
 /* イベント定義 */
 var EVS=[
@@ -243,8 +267,22 @@ var EVBTNS=[
 ];
 
 /* CZ：通常時か確定CZか（分母管理） */
-var CZ_KIND=[{id:"normal",l:"通常時CZ"},{id:"kakutei",l:"確定CZ"}];
+/* CZ突入契機。kakutei(確定CZ)のみ設定推測の分母から除外、それ以外は通常時CZ扱い。 */
+var CZ_KIND=[
+{id:"coco",l:"ココポイント",denom:true},
+{id:"rare",l:"レア役",denom:true},
+{id:"other",l:"その他/不明",denom:true},
+{id:"kakutei",l:"確定CZ",denom:false}
+];
 var CZ_RES=[{id:"s",l:"成功"},{id:"f",l:"失敗"}];
+/* CZ失敗時に出る次回CZモード示唆カード（設定示唆ではなく次回CZの強さ） */
+var CZ_CARD=[
+{id:"none",l:"なし/不明"},
+{id:"yona",l:"ヨナ(モードC↑弱)"},
+{id:"lutz",l:"ルツ(モードC↑強)"},
+{id:"rkoko",l:"アール&ココ(モードD↑)"},
+{id:"bkoko",l:"バルメ&ココ(滅びの丘濃厚)"}
+];
 /* 恥の世紀：結果＋（任意）レア役成功内訳 */
 var HAJI_RES=[{id:"s",l:"成功"},{id:"f",l:"失敗"}];
 var HAJI_RARE=[{id:"none",l:"通常成功/記録なし"},{id:"rare",l:"レア役成功"}];
@@ -253,34 +291,51 @@ var END_SCR=[{id:"def",l:"デフォルト"},{id:"han",l:"高設定示唆"},{id:"
 
 /* カウンター（示唆系・自力カウント系） */
 var CNTS=[
-{id:"karis",t:"⏱️ 仮天井(450G+α)選択率",items:[
-{k:"kariTotal",l:"母数（通常スタートの規定到達回数）",s:"設定変更後/恥の世紀後は除外して記録"},
-{k:"kari450",l:"↑ うち 仮天井(450G+α) 選択",s:"設1:33.6% → 設6:50.0%"}]},
-{id:"card",t:"🃏 サブ液晶カード（50G到達示唆）",items:[
+{id:"card",t:"🃏 サブ液晶カード（末尾50G・設定示唆）",items:[
 {k:"cMao",l:"マオ",s:"基本",dot:"#90A4AE"},
 {k:"cUgo",l:"ウゴ",h:"奇数",s:"奇数設定示唆",dot:"#42A5F5"},
 {k:"cTojo",l:"トージョ",h:"偶数",s:"偶数設定示唆",dot:"#66BB6A"},
 {k:"cWairi",l:"ワイリ",h:"高設定弱",s:"高設定示唆(弱)",dot:"#FFA726"},
 {k:"cLehm",l:"レーム",h:"高設定強",s:"高設定示唆(強)",dot:"#EF5350"},
 {k:"cYoKo",l:"ヨナ＆ココ",h:"2・4・6",s:"偶数(設2・4・6)示唆",dot:"#AB47BC"}]},
-{id:"reg",t:"🎨 REG中キャラ紹介（背景色）",items:[
-{k:"rBlueA",l:"青A（ココ等）",h:"奇数",s:"奇数設定示唆",dot:"#42A5F5"},
-{k:"rBlueB",l:"青B（トージョ等）",h:"偶数",s:"偶数設定示唆",dot:"#64B5F6"},
-{k:"rBlueC",l:"青C（チェキータ等）",h:"高設定",s:"高設定示唆",dot:"#26C6DA"},
-{k:"rGreen",l:"緑",h:"設2↑",s:"設定2以上",dot:"#66BB6A"},
-{k:"rRed",l:"赤",h:"設4↑",s:"設定4以上",dot:"#EF5350"},
-{k:"rGold",l:"金（ココ幼少期）",h:"設6",s:"設定6濃厚",dot:"#FFD700"}]},
+{id:"karis",t:"⏱️ 仮天井(450G+α)選択率",items:[
+{k:"kariTotal",l:"母数（通常スタートの規定到達回数）",s:"設定変更後/恥の世紀後は除外して記録"},
+{k:"kari450",l:"↑ うち 仮天井(450G+α) 選択",s:"設1:33.6% → 設6:50.0%"}]},
+{id:"reg",t:"🎨 RB中キャラ紹介（グループ）",items:[
+{k:"rgA",l:"Gr.A（ココ/ヨナ/レーム/ルツ/バルメ）",h:"奇数",s:"奇数設定期待度UP",dot:"#42A5F5"},
+{k:"rgB",l:"Gr.B（トージョ/ワイリ/ウゴ/マオ/アール）",h:"偶数",s:"偶数設定期待度UP",dot:"#66BB6A"},
+{k:"rgC",l:"Gr.C（チェキータ/チェングオメン/カレン）",h:"高設定",s:"高設定期待度UP",dot:"#26C6DA"},
+{k:"rgD",l:"Gr.D（南/ブックマン/ヘックス）",h:"設2↑",s:"設定2以上濃厚（3人目のみ）",dot:"#AB47BC"},
+{k:"rgE",l:"Gr.E（キャスパー/エコー/博士3人）",h:"設4↑",s:"設定4以上濃厚（3人目のみ）",dot:"#EF5350"},
+{k:"rgF",l:"Gr.F（ココ幼少期）",h:"設6",s:"設定6濃厚（3人目のみ）",dot:"#FFD700"}]},
 {id:"end",t:"🏁 ボーナス終了画面",items:[
-{k:"eHaka",l:"博士3人",h:"高設定",s:"高設定示唆",dot:"#26C6DA"},
-{k:"eYugata",l:"夕方",h:"奇数",s:"奇数設定示唆",dot:"#42A5F5"},
-{k:"eBalme",l:"バルメ",h:"偶数",s:"偶数設定示唆",dot:"#66BB6A"},
-{k:"eHandgun",l:"ハンドガンと薬莢",h:"設2否定+設5↑",s:"設2否定／設5以上示唆",dot:"#EF5350"},
-{k:"eKoko",l:"旧ココ部隊",h:"2・4・6",s:"偶数(設2・4・6)示唆",dot:"#AB47BC"},
-{k:"eCasper",l:"キャスパー",h:"設4↑",s:"設定4以上",dot:"#FFA726"},
+{k:"eYugata",l:"夕方",h:"奇数",s:"奇数設定期待度UP",dot:"#42A5F5"},
+{k:"eBalme",l:"睡眠バルメ",h:"偶数",s:"偶数設定期待度UP",dot:"#66BB6A"},
+{k:"eHaka",l:"博士3人",h:"高設定",s:"高設定期待度UP",dot:"#26C6DA"},
+{k:"eHandgun",l:"ハンドガンと薬莢",h:"設2否定+設5↑",s:"設2否定／設5以上期待度UP",dot:"#EF5350"},
+{k:"eKoko",l:"旧ココ部隊",h:"2・4・6",s:"設2・4・6濃厚",dot:"#AB47BC"},
+{k:"eCasper",l:"キャスパー",h:"設4↑",s:"設定4以上濃厚",dot:"#FFA726"},
 {k:"eKakashi",l:"黄金の畑のカカシ",h:"設6",s:"設定6濃厚",dot:"#FFD700"}]}
 ];
 var ALL_CC_KEYS=[];
 CNTS.forEach(function(s){s.items.forEach(function(it){ALL_CC_KEYS.push(it.k)})});
+
+/* レア役別CZ当選率：状態(通常/高確)×役(チャンス目/強チェリー/弱レア)。
+   カバネリのpt集計タブのように、状態タブを切り替えて該当役のみ表示する。
+   各役は試行(_t)と当選(_w)を持つ。弱レアは通常時データ未判明のため高確のみ。 */
+var RARECZ_ITEMS={
+normal:[
+{role:"chOu",nm:"チャンス目",ref:RARECZ.chOuNormal,c4:false},
+{role:"che",nm:"強チェリー",ref:RARECZ.cheNormal,c4:false}
+],
+high:[
+{role:"chOu",nm:"チャンス目",ref:RARECZ.chOuHigh,c4:true},
+{role:"che",nm:"強チェリー",ref:RARECZ.cheHigh,c4:true},
+{role:"weak",nm:"弱レア(弱チェ/スイカ)",ref:RARECZ.weakHigh,c4:false}
+]};
+/* CCキー命名: {role}{State}_t / _w  (State: N=通常, H=高確) */
+var RARECZ_KEYS=["chOuN_t","chOuN_w","cheN_t","cheN_w","chOuH_t","chOuH_w","cheH_t","cheH_w","weakH_t","weakH_w"];
+RARECZ_KEYS.forEach(function(k){ALL_CC_KEYS.push(k)});
 
 /* ===== 状態 ===== */
 var CC={};            /* カウンター値 */
@@ -289,13 +344,15 @@ var COL={};           /* 折りたたみ状態(counter) */
 var infoCol={};       /* 折りたたみ状態(info) */
 var TAB="rec";
 var inAT=false;       /* AT/上位AT/各種BN中フラグ（totalG区切り用） */
-var curEv=null,curG="",curRes=null,curCztrig=null,curKari=null,curScr=null,curNote="",curMai="",curHrare=null;
+var curEv=null,curG="",curRes=null,curCztrig=null,curKari=null,curScr=null,curNote="",curMai="",curHrare=null,curCzcard=null;
+var czTab="normal";   /* レア役別CZ集計の状態タブ: normal / high */
 var rstP=false,rstT=null;
 
 function initC(){
 ALL_CC_KEYS.forEach(function(k){CC[k]=0});
 CNTS.forEach(function(s){COL[s.id]=false});
 COL["haji"]=false;
+COL["rarecz"]=false;
 }
 
 function load(){
@@ -340,6 +397,7 @@ return total}
 function stats(){
 var s={
 cz:0,czNormal:0,czNormalS:0,czKakutei:0,czS:0,
+czCoco:0,czRare:0,czOther:0,
 haji:0,hajiS:0,hajiRare:0,hajiRareS:0,
 atFirst:0,rb:0,bb:0,yoru:0,upat:0
 };
@@ -348,6 +406,9 @@ if(e.ev==="cz"){
 s.cz=s.cz+1;
 if(e.cztrig==="kakutei"){s.czKakutei=s.czKakutei+1}
 else{s.czNormal=s.czNormal+1;if(e.res==="s")s.czNormalS=s.czNormalS+1}
+if(e.cztrig==="coco")s.czCoco=s.czCoco+1;
+if(e.cztrig==="rare")s.czRare=s.czRare+1;
+if(e.cztrig==="other")s.czOther=s.czOther+1;
 if(e.res==="s")s.czS=s.czS+1;
 }
 if(e.ev==="haji"){
@@ -364,14 +425,14 @@ return s}
 
 /* 確定示唆からの最低設定 */
 function cMin(){var m=0;
-if(CC.rGold||CC.eKakashi)m=6;
-else if(CC.eHandgun)m=Math.max(m,5);            /* 設5以上示唆（最低保証としては扱い注意だが運用上5↑） */
-else if(CC.rRed||CC.eCasper)m=Math.max(m,4);
-else if(CC.rGreen)m=Math.max(m,2);
+if(CC.rgF||CC.eKakashi)m=6;
+else if(CC.eHandgun)m=Math.max(m,5);            /* 設5以上示唆 */
+else if(CC.rgE||CC.eCasper)m=Math.max(m,4);
+else if(CC.rgD||CC.eKoko)m=Math.max(m,2);       /* 旧ココ部隊=設2・4・6→最低設2 */
 return m}
 
 function render(){rHdr();rQS();rTabs();
-if(TAB==="rec")rRec();else if(TAB==="cnt")rCnt();else if(TAB==="tl")rTL();else if(TAB==="info")rInfo();else rExp()}
+if(TAB==="rec")rRec();else if(TAB==="cnt")rCnt();else if(TAB==="tl")rTL();else if(TAB==="guide")rGuide();else if(TAB==="info")rInfo();else rExp()}
 
 function rHdr(){
 var h='<div class="hr"><div><div class="ht">スマスロ ヨルムンガンド</div><div class="hs">'+(inAT?'【AT/BN中】':'通常時')+' / '+LOG.length+'件</div></div>';
@@ -392,10 +453,12 @@ if(tG>0&&s.czNormal>0){var v=tG/s.czNormal,e=estX("cz",v);h=h+'<div class="qc"><
 if(tG>0&&s.atFirst>0){var v2=tG/s.atFirst,e2=estX("at",v2);h=h+'<div class="qc"><span class="ql">AT初当</span> <span class="qv">1/'+v2.toFixed(1)+'</span>'+(e2?' <span class="qe" style="color:'+SC[e2]+'">設'+e2+'</span>':'')+'</div>'}
 /* 仮天井選択率 */
 if(CC.kariTotal>0){var kr=parseFloat(rate(CC.kari450,CC.kariTotal)),ek=estPct(KARI,kr);h=h+'<div class="qc"><span class="ql">仮天井</span> <span class="qv">'+kr.toFixed(1)+'%</span>'+(ek?' <span class="qe" style="color:'+SC[ek]+'">設'+ek+'</span>':'')+'</div>'}
+/* 高確中チャンス目CZ当選率（設1〜3の差が大きい注目要素） */
+if(CC.chOuH_t>0){var cr=CC.chOuH_w/CC.chOuH_t*100,ec=estPct(RARECZ.chOuHigh,cr);var ecl=ec?(ec>=4?"設4↑":"設"+ec):"";h=h+'<div class="qc hl"><span class="ql">高確CZ(目)</span> <span class="qv">'+cr.toFixed(1)+'%</span>'+(ecl?' <span class="qe" style="color:'+SC[ec>=4?4:ec]+'">'+ecl+'</span>':'')+'</div>'}
 document.getElementById("qs").innerHTML=h}
 
 function rTabs(){
-var ts=[{id:"rec",ic:"✏️",l:"記録"},{id:"cnt",ic:"🔢",l:"カウンター"},{id:"tl",ic:"📋",l:"履歴"},{id:"info",ic:"📖",l:"示唆"},{id:"exp",ic:"📤",l:"出力"}];
+var ts=[{id:"rec",ic:"✏️",l:"記録"},{id:"cnt",ic:"🔢",l:"カウンター"},{id:"guide",ic:"🎯",l:"攻略"},{id:"tl",ic:"📋",l:"履歴"},{id:"info",ic:"📖",l:"示唆"},{id:"exp",ic:"📤",l:"出力"}];
 var h="";for(var i=0;i<ts.length;i++)h=h+'<div class="tb'+(TAB===ts[i].id?' a':'')+'" data-tab="'+ts[i].id+'"><span class="tb-ic">'+ts[i].ic+'</span>'+ts[i].l+'</div>';
 document.getElementById("tabs").innerHTML=h}
 
@@ -409,14 +472,20 @@ h=h+'<button type="button" class="eb '+eb.c+(curEv===eb.id?' s':'')+'" data-ev="
 h=h+'</div>';
 if(curEv){
 var ev=gev(curEv);
-/* CZ：通常/確定 ＋ 成否 */
+/* CZ：突入契機 ＋ 成否 */
 if(curEv==="cz"){
-h=h+'<div class="dt"><div class="dt-t">CZ種別（分母管理）</div><div class="dt-r">';
+h=h+'<div class="dt"><div class="dt-t">突入契機</div><div class="dt-r">';
 for(var ik=0;ik<CZ_KIND.length;ik++){var ck=CZ_KIND[ik];h=h+'<button type="button" class="dt-b'+(curCztrig===ck.id?' s':'')+'" data-cztrig="'+ck.id+'">'+ck.l+'</button>'}
-h=h+'</div><div class="yr-hint" style="margin-top:4px">設定推測の分母は<b>通常時CZのみ</b>。確定CZ（恥の世紀後・特定契機など）は分母から除外して集計します。</div></div>';
+h=h+'</div><div class="yr-hint" style="margin-top:4px">ココポイント／レア役／その他は<b>通常時CZ</b>として設定推測の分母に算入。<b>確定CZ</b>（恥の世紀後など濃厚契機）のみ分母から除外します。</div></div>';
 h=h+'<div class="dt"><div class="dt-t">結果</div><div class="dt-r">';
 for(var i2=0;i2<CZ_RES.length;i2++){var r=CZ_RES[i2];h=h+'<button type="button" class="dt-b'+(curRes===r.id?' s':'')+'" data-res="'+r.id+'">'+r.l+'</button>'}
 h=h+'</div></div>';
+/* CZ失敗時：次回CZモード示唆カード（任意・設定示唆ではない） */
+if(curRes==="f"){
+h=h+'<div class="dt"><div class="dt-t">失敗後のモード示唆カード（任意）</div><div class="dt-r">';
+for(var icc=0;icc<CZ_CARD.length;icc++){var cc=CZ_CARD[icc];h=h+'<button type="button" class="dt-b'+(curCzcard===cc.id?' s':'')+'" data-czcard="'+cc.id+'">'+cc.l+'</button>'}
+h=h+'</div><div class="yr-hint" style="margin-top:4px">CZ失敗後に出るカードは<b>次回CZの強さ</b>を示唆（設定示唆ではない）。バルメ&ココなら次回滅びの丘濃厚なのでフォロー推奨。</div></div>';
+}
 }
 /* 恥の世紀：結果 ＋ レア役内訳（任意） */
 if(curEv==="haji"){
@@ -446,7 +515,8 @@ ct.innerHTML=h}
 function buildNote(e){
 var b=[];
 if(e.res)b.push(e.res==="s"?"成功":"失敗");
-if(e.cztrig){var cl={normal:"通常時CZ",kakutei:"確定CZ"};b.push(cl[e.cztrig]||esc(e.cztrig))}
+if(e.cztrig){var cl={coco:"ココポイント",rare:"レア役",other:"その他",kakutei:"確定CZ",normal:"通常時CZ"};b.push(cl[e.cztrig]||esc(e.cztrig))}
+if(e.czcard){var zl={yona:"次回モードC↑(弱)",lutz:"次回モードC↑(強)",rkoko:"次回モードD↑",bkoko:"次回滅びの丘濃厚🔥"};b.push(zl[e.czcard]||esc(e.czcard))}
 if(e.hrare==="rare")b.push("レア役成功");
 if(e.scr){var sl={def:"デフォルト",han:"高設定示唆",s6:"設6示唆"};b.push("画面："+(sl[e.scr]||esc(e.scr)))}
 if(e.mai)b.push(esc(e.mai)+"枚");
@@ -476,9 +546,66 @@ ct.innerHTML=buildTable(0,LOG.length,true)}
 /* === カウンタータブ === */
 function rCnt(){
 var ct=document.getElementById("ct"),tG=totalG(),h='<div class="cnt">';
-h=h+buildHajiSection();
+h=h+buildRareczSection();
 for(var si=0;si<CNTS.length;si++)h=h+buildCntSection(CNTS[si],tG);
+h=h+buildHajiSection();
 h=h+'</div>';ct.innerHTML=h}
+
+/* レア役別CZ当選率：状態タブ(通常/高確)切替式（カバネリのpt集計と同じUI） */
+function buildRareczSection(){
+var cl=COL["rarecz"];
+var h='<div class="pt-wrap">';
+h=h+'<div class="pt-header" data-tog="rarecz"><div class="t">🎯 レア役別CZ当選率（恥の世紀に次ぐ判別軸）</div><span class="ar">'+(cl?'▶':'▼')+'</span></div>';
+if(!cl){
+/* 状態タブ */
+var tabs=[{id:"normal",l:"通常時",color:"#64b5f6"},{id:"high",l:"高確中",color:"#FFB300"}];
+h=h+'<div class="pt-tabs">';
+for(var ti=0;ti<tabs.length;ti++){var td=tabs[ti];
+h=h+'<div class="pt-tab'+(czTab===td.id?' active':'')+'" style="--tab-color:'+td.color+'" data-cztab="'+td.id+'">'+td.l+'</div>';}
+h=h+'</div>';
+var items=RARECZ_ITEMS[czTab]||[];
+var stSuf=(czTab==="normal")?"N":"H";
+h=h+'<div class="pt-body">';
+for(var ii=0;ii<items.length;ii++){var it=items[ii];
+var tk=it.role+stSuf+"_t",wk=it.role+stSuf+"_w";
+var t=CC[tk]||0,w=CC[wk]||0;
+var pr=t>0?(w/t*100):null;
+var e=pr!=null?estPct(it.ref,pr):null;
+var lab=e?(it.c4&&e>=4?"設4以上":"設"+e):"";
+var col=e?SC[(it.c4&&e>=4)?4:e]:"#80cbc4";
+/* 役ブロック */
+h=h+'<div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)">';
+h=h+'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px">';
+h=h+'<div><span style="font-size:13px;font-weight:700;color:rgba(255,255,255,.85)">'+it.nm+'</span>';
+if(pr!=null)h=h+' <span style="font-size:15px;font-weight:800;font-family:monospace;color:'+col+'">'+pr.toFixed(1)+'%</span>'+(lab?' <span style="font-size:10px;font-weight:700;color:'+col+'">'+lab+'</span>':'');
+h=h+'</div></div>';
+/* 試行/当選 カウンター */
+h=h+'<div style="display:flex;gap:6px">';
+h=h+'<div style="flex:1;display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:4px 6px">';
+h=h+'<span style="font-size:10px;color:rgba(255,255,255,.4);font-weight:600">試行</span>';
+h=h+'<div style="display:flex;align-items:center;gap:3px"><button type="button" class="cm" data-cd="'+tk+'">−</button><div class="vl" style="min-width:30px">'+t+'</div><button type="button" class="cp2" data-ci="'+tk+'">＋</button></div></div>';
+h=h+'<div style="flex:1;display:flex;align-items:center;justify-content:space-between;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:4px 6px">';
+h=h+'<span style="font-size:10px;color:rgba(255,255,255,.4);font-weight:600">当選</span>';
+h=h+'<div style="display:flex;align-items:center;gap:3px"><button type="button" class="cm" data-cd="'+wk+'">−</button><div class="vl" style="min-width:30px">'+w+'</div><button type="button" class="cp2" data-ci="'+wk+'">＋</button></div></div>';
+h=h+'</div>';
+/* 設定別参考 */
+h=h+'<div style="font-size:9px;color:rgba(255,255,255,.3);margin-top:4px;font-family:monospace">';
+var refparts=[];for(var st=1;st<=6;st++)refparts.push('<span style="color:'+SC[st]+'">'+it.ref[st].toFixed(1)+'</span>');
+h=h+'設1〜6: '+refparts.join(' / ')+'%';
+h=h+'</div>';
+h=h+'</div>';
+}
+/* 状態タブ別の注記 */
+if(czTab==="normal"){
+h=h+'<div class="cc" style="margin-top:8px"><div class="cc-sub">通常(低確)滞在中のレア役成立時。チャンス目は設1=10.2%→設6=16.8%、強チェリーは設1=25.0%→設6=35.2%と段階的に上昇。弱チェリー/スイカ(弱レア)は通常時のデータが未判明のため、高確タブのみで記録します。</div></div>';
+}else{
+h=h+'<div class="cc" style="margin-top:8px"><div class="cc-sub">高確滞在中のレア役成立時。チャンス目/強チェリーは設4以上で当選率が共通（50%/80.1%）になるため、それ以上は他要素と併用。<b style="color:#FFB300">超高確中</b>のレア役は全設定CZ当選濃厚なので母数に入れないこと。</div></div>';
+}
+h=h+'</div>';
+}
+h=h+'</div>';
+return h;
+}
 
 /* 恥の世紀ヒーローパネル（メイン判別軸） */
 function buildHajiSection(){
@@ -550,24 +677,36 @@ var INFO=[
 ["設1","16.0%",1],["設2","16.4%",2],["設3","16.8%",3],
 ["設4","25.0%",4],["設5","46.9%",5],["設6","57.4%",6]
 ],note:"上位CZ「恥の世紀」の成功率がこの機種で最大の設定差。設1〜3はほぼ横ばいだが、設4以上で大きく跳ね上がる。成功率が25%を超えてくる感触なら設4以上、45%超なら設5・6が濃厚。突入回数が少ないうちは振れ幅が大きい点に注意。"},
-{id:"i_rates",t:"📈 設定別 確率一覧（CZ/AT初当たり）",custom:"rates",note:"CZ出現率は通常時CZのみが母数。AT初当たりはCZ・恥の世紀・各種ボーナス経由を含む総合の初当たり。設定差はCZ・AT初当ともに小さめなので、恥の世紀成功率と併せて判断する。"},
+{id:"i_rates",t:"📈 設定別 確率一覧（CZ/AT初当たり）",custom:"rates",note:"CZ出現率は通常時CZのみが母数。AT初当たりはCZ・恥の世紀・各種ボーナス経由を含む総合の初当たり。設定差はCZ・AT初当ともに小さめなので、恥の世紀成功率や下記レア役別CZ当選率と併せて判断する。"},
+{id:"i_rarecz",t:"🎯 レア役別CZ当選率（恥の世紀に次ぐ判別軸）",custom:"rarecz",note:"レア役成立時のCZ当否を状態別にカウントすると設定差が出やすい。特に「高確中チャンス目」は設1=33.6%／設2=36.7%／設3=46.1%と設1〜3で大きく開き、設4以上は50%共通。通常時チャンス目も設1=10.2%→設6=16.8%と段階的に上昇。超高確中のレア役は全設定でCZ当選濃厚なので母数から除外する。"},
+{id:"i_kakutei",t:"🔒 確定CZ選択率",rows:[
+["設1〜3","5.08%",3],["設4〜6","6.25%",4]
+],note:"CZ当選時に内部的に確定CZが選ばれる割合。設1〜3と設4〜6で共通かつ差は小さいので参考程度。確定CZの告知はCZ失敗時のみ行われ、自力でCZ成功した場合は確定だったか判別できない点に注意。"},
 {id:"i_kari",t:"⏱️ 仮天井(450G+α)選択率",rows:[
 ["設1","33.6%",1],["設2","40.2%",2],["設3","45.3%",3],
 ["設4","49.2%",4],["設5","49.6%",5],["設6","50.0%",6]
 ],note:"通常スタート時の規定到達で450G+αの短い仮天井が選ばれる割合。高設定ほど高い（設4以上で約半数）。設定変更後の初回・恥の世紀後など、抽選条件が異なるケースは母数から除外して記録するのが基本。設5と設6はほぼ同値なので単独では設6確定にならない。"},
-{id:"i_card",t:"🃏 サブ液晶カード（50G到達示唆）",rows:[
-["マオ","基本"],["ウゴ","奇数設定示唆"],["トージョ","偶数設定示唆"],
-["ワイリ","高設定示唆(弱)"],["レーム","高設定示唆(強)"],["ヨナ＆ココ","偶数(設2・4・6)示唆"]
-],note:"通常時50G到達時などに表示されるサブ液晶のカードキャラで設定示唆。レームは高設定示唆が強い。"},
-{id:"i_reg",t:"🎨 REG中キャラ紹介（背景色）",rows:[
-["青A（ココ等）","奇数設定示唆"],["青B（トージョ等）","偶数設定示唆"],["青C（チェキータ等）","高設定示唆"],
-["緑","設定2以上",2],["赤","設定4以上",4],["金（ココ幼少期）","設定6濃厚",6]
-],note:"REG（RB）中のキャラ紹介画面の背景色で示唆。緑以上は色が上がるほど期待度が高い。金は設6濃厚。"},
+{id:"i_reg",t:"🎨 RB中キャラ紹介（グループ示唆）",rows:[
+["Gr.A（ココ/ヨナ/レーム/ルツ/バルメ）","奇数設定期待度UP"],
+["Gr.B（トージョ/ワイリ/ウゴ/マオ/アール）","偶数設定期待度UP"],
+["Gr.C（チェキータ/チェングオメン/カレン）","高設定期待度UP"],
+["Gr.D（南/ブックマン/ヘックス）","設定2以上濃厚",2],
+["Gr.E（キャスパー/エコー/博士3人）","設定4以上濃厚",4],
+["Gr.F（ココ幼少期）","設定6濃厚",6]
+],note:"1回のRBでキャラが3人切り替わる。Gr.D〜Fは3人目のみ選択される可能性があり、出れば濃厚示唆。Gr.A/Bは1〜3人目すべてで選択され、奇数/偶数を示唆。"},
 {id:"i_end",t:"🏁 ボーナス終了画面",rows:[
-["博士3人","高設定示唆"],["夕方","奇数設定示唆"],["バルメ","偶数設定示唆"],
+["博士3人","高設定示唆"],["夕方","奇数設定示唆"],["睡眠バルメ","偶数設定示唆"],
 ["ハンドガンと薬莢","設2否定＋設5以上示唆",5],["旧ココ部隊","偶数(設2・4・6)示唆"],
 ["キャスパー","設定4以上",4],["黄金の畑のカカシ","設定6濃厚",6]
 ],note:"ボーナス終了時の画面で示唆。ハンドガンと薬莢は設2を否定しつつ設5以上を示唆、黄金の畑のカカシは設6濃厚。"},
+{id:"i_mai",t:"💰 AT中 獲得枚数表記",rows:[
+["222over","設定2以上濃厚",2],["456over","設定4以上濃厚",4],
+["666over","設定6濃厚",6],["803over","設定6濃厚（やまさ）",6]
+],note:"AT中の獲得枚数表記で設定示唆。803over以外は出現率1%未満で見かける頻度は低い。出れば価値が高いので見逃さないように。"},
+{id:"i_endlamp",t:"🌈 エンディング中レア役 ランプ色",rows:[
+["白","デフォルト"],["青","奇数設定示唆"],["黄","偶数設定示唆"],["緑","高設定示唆"],
+["赤","設定2以上濃厚",2],["紫","設定4以上濃厚",4],["虹","設定6濃厚",6]
+],note:"完走(エンディング)到達時、レア役成立で台枠ランプが点滅し色で設定示唆。紫・虹は高設定濃厚なので必ず確認。"},
 {id:"i_kappa",t:"⚙️ 機械割（参考）",rows:[
 ["設1","97.8%",1],["設2","99.5%",2],["設3","101.8%",3],
 ["設4","106.0%",4],["設5","109.8%",5],["設6","113.9%",6]
@@ -601,16 +740,47 @@ h=h+'<div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:6px">記�
 return h;
 }
 
+/* レア役別CZ当選率 参考表（実測があれば併記） */
+function buildRareCzTable(){
+var defs=[
+{nm:"チャンス目・通常",ref:RARECZ.chOuNormal,tk:"chOuN_t",wk:"chOuN_w",c4:false},
+{nm:"チャンス目・高確",ref:RARECZ.chOuHigh,tk:"chOuH_t",wk:"chOuH_w",c4:true},
+{nm:"強チェリー・通常",ref:RARECZ.cheNormal,tk:"cheN_t",wk:"cheN_w",c4:false},
+{nm:"強チェリー・高確",ref:RARECZ.cheHigh,tk:"cheH_t",wk:"cheH_w",c4:true},
+{nm:"弱レア・高確",ref:RARECZ.weakHigh,tk:"weakH_t",wk:"weakH_w",c4:false}
+];
+var h='<div class="cyc3"><table><thead><tr><th style="text-align:left">役・状態</th><th>設1</th><th>設2</th><th>設3</th><th>設4</th><th>設5</th><th>設6</th></tr></thead><tbody>';
+for(var i=0;i<defs.length;i++){var d=defs[i];
+h=h+'<tr><td style="text-align:left;color:rgba(255,255,255,.7);font-weight:700">'+d.nm+'</td>';
+for(var st=1;st<=6;st++){h=h+'<td style="color:'+SC[st]+'">'+d.ref[st].toFixed(1)+'</td>'}
+h=h+'</tr>';}
+h=h+'</tbody></table></div>';
+/* 実測サマリ */
+var lines=[];
+for(var k=0;k<defs.length;k++){var dd=defs[k];var t=CC[dd.tk]||0,w=CC[dd.wk]||0;if(t<=0)continue;
+var pr=w/t*100;var e=estPct(dd.ref,pr);var lab=e?(dd.c4&&e>=4?"設4以上":"設"+e):"";
+lines.push(dd.nm+' '+w+'/'+t+' ('+pr.toFixed(1)+'%)'+(lab?' →'+lab+'付近':''));}
+if(lines.length){
+h=h+'<div class="cc" style="margin-top:8px"><div class="cc-t">あなたの実測</div>';
+for(var li=0;li<lines.length;li++)h=h+'<div class="cc-l">'+lines[li]+'</div>';
+h=h+'<div class="cc-sub">カウンタータブの「レア役別CZ当選率」で試行/当選を記録すると算出されます</div></div>';
+}else{
+h=h+'<div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:6px">数値は当選率(%)。カウンタータブでレア役ごとに記録すると、ここに実測と推定設定が出ます。</div>';
+}
+return h;
+}
+
 function rInfo(){
 var ct=document.getElementById("ct");
 var h='<div class="info">';
-h=h+'<div style="font-size:10px;color:rgba(255,255,255,.35);margin-bottom:10px;line-height:1.6">2026年解析（なな徹/一撃準拠）にもとづく設定示唆まとめ。各項目をタップで開閉。<b style="color:#ff8a80">恥の世紀の成功率がこの台の主軸</b>です。</div>';
+h=h+'<div style="font-size:10px;color:rgba(255,255,255,.35);margin-bottom:10px;line-height:1.6">2026年解析（なな徹/一撃準拠）にもとづく設定示唆まとめ。各項目をタップで開閉。<b style="color:#ff8a80">恥の世紀の成功率がこの台の主軸</b>です。<br>※サブ液晶カードの示唆は「🎯攻略」タブの早見表に集約しています。</div>';
 for(var i=0;i<INFO.length;i++){
 var sec=INFO[i],cl=infoCol[sec.id];
 h=h+'<div class="isec"><div class="isec-h" data-itog="'+sec.id+'"><div class="t">'+sec.t+'</div><span class="ar">'+(cl?'▶':'▼')+'</span></div>';
 if(!cl){
 h=h+'<div class="isec-b">';
 if(sec.custom==="rates"){h=h+buildRatesTable();}
+else if(sec.custom==="rarecz"){h=h+buildRareCzTable();}
 else{
 h=h+'<table class="itbl"><tbody>';
 for(var j=0;j<sec.rows.length;j++){
@@ -633,6 +803,184 @@ h=h+'</div>';
 ct.innerHTML=h;
 }
 
+/* === 攻略タブ（実践・立ち回り。設定問わず役立つ情報） === */
+var guideCol={};
+/* サブ液晶カード早見表：状況で示唆が変わる（一撃準拠） */
+var CARD_TABLE=[
+{nm:"マオ(白)",setuji:"デフォルト",czmode:"—",dot:"#E0E0E0"},
+{nm:"ウゴ(白)",setuji:"奇数設定期待度UP",czmode:"—",dot:"#90CAF9"},
+{nm:"トージョ(白)",setuji:"偶数設定期待度UP",czmode:"—",dot:"#A5D6A7"},
+{nm:"ワイリ(青)",setuji:"高設定期待度UP(弱)",czmode:"—",dot:"#42A5F5"},
+{nm:"ヨナ(青)",setuji:"—",czmode:"次回モードC以上(弱)",dot:"#42A5F5"},
+{nm:"レーム(緑)",setuji:"高設定期待度UP(強)",czmode:"—",dot:"#66BB6A"},
+{nm:"ルツ(緑)",setuji:"—",czmode:"次回モードC以上(強)",dot:"#66BB6A"},
+{nm:"ヨナ＆ココ(赤)",setuji:"設2・4・6濃厚",czmode:"—",dot:"#EF5350"},
+{nm:"アール＆ココ(赤)",setuji:"—",czmode:"次回モードD以上濃厚",dot:"#EF5350"},
+{nm:"バルメとココ(紫)",setuji:"—",czmode:"次回『滅びの丘』濃厚 🔥",dot:"#AB47BC"}
+];
+var GUIDE=[
+{id:"g_card",t:"🃏 サブ液晶カード早見表（最重要）",custom:"card",
+note:"カードは出るタイミングで意味が変わる。①末尾50G(50/150/250G…)到達＝設定示唆／②CZ失敗後＝次回CZモード示唆。設定示唆ではレーム＝高設定(強)・ワイリ＝高設定(弱)・ヨナ＆ココ＝設2・4・6が狙い目。CZモード示唆カードは出ただけで次回の滅びの丘期待度UP。特にバルメ＆ココは次回CZが滅びの丘濃厚なので絶対にフォロー。設定示唆カードのカウントは「🔢カウンター」タブで記録できます。"},
+{id:"g_yame",t:"🛑 やめどき（取りこぼし防止）",custom:"yame",
+note:""},
+{id:"g_tenjo",t:"⏱️ 天井・狙い目",custom:"tenjo",
+note:""},
+{id:"g_horobi",t:"⛰️ 滅びの丘 示唆（バルメのセリフ）",rows:[
+["大星海公司・・・・・・","★☆☆☆☆"],
+["悩むのも今日で終わりです","★★☆☆☆"],
+["生きていたら また会いましょう","★★★★★"]
+],note:"通常時のバルメのセリフ演出で次回CZ『滅びの丘』の期待度を示唆。滅びの丘は突入時点でAT濃厚（上位AT期待度約50%）。「生きていたら また会いましょう」は期待大。"},
+{id:"g_state",t:"🎚️ 内部状態・超高確ゾーン",custom:"state",note:""},
+{id:"g_at",t:"🎰 AT中の立ち回り（キャスパー/ストーリー）",custom:"at",note:""},
+{id:"g_warning",t:"📢 WARNING ORDER MODE 隠しPUSH",rows:[
+["ルツ「俺の出番だぜ」","★×2.0（450G前兆なら!?）"],
+["ヨナ「問題ない」","★×2.5"],
+["南「いい感じじゃん」","★×3.5"],
+["キャスパー「君はこれから〜」","★×4.0"],
+["バルメ「聞こえる〜」","★×5.0（滅びの丘濃厚）"],
+["主題歌が流れる","★×5.0（AT濃厚）"]
+],note:"タイトル表示画面でPUSHボタンを押すとボイス／楽曲でCZ・AT前兆の期待度を示唆。バルメ「聞こえる〜」は滅びの丘濃厚、主題歌はAT濃厚。"},
+{id:"g_neji",t:"💡 ねじれココランプ（ねじりポイント）",custom:"neji",note:""},
+{id:"g_reset",t:"🌅 朝イチ・リセット判別",custom:"reset",
+note:""}
+];
+
+function rGuide(){
+var ct=document.getElementById("ct");
+var h='<div class="info">';
+h=h+'<div style="font-size:10px;color:rgba(255,255,255,.35);margin-bottom:10px;line-height:1.6">設定に関係なく使える実践メモ。サブ液晶・やめどき・天井・滅びの丘示唆など。タップで開閉。</div>';
+for(var i=0;i<GUIDE.length;i++){
+var sec=GUIDE[i],cl=guideCol[sec.id];
+h=h+'<div class="isec"><div class="isec-h" data-gtog="'+sec.id+'"><div class="t">'+sec.t+'</div><span class="ar">'+(cl?'▶':'▼')+'</span></div>';
+if(!cl){
+h=h+'<div class="isec-b">';
+if(sec.custom==="card"){h=h+buildCardTable();}
+else if(sec.custom==="yame"){h=h+buildYame();}
+else if(sec.custom==="tenjo"){h=h+buildTenjo();}
+else if(sec.custom==="state"){h=h+buildState();}
+else if(sec.custom==="at"){h=h+buildAtGuide();}
+else if(sec.custom==="neji"){h=h+buildNeji();}
+else if(sec.custom==="reset"){h=h+buildReset();}
+else{
+h=h+'<table class="itbl"><tbody>';
+for(var j=0;j<sec.rows.length;j++){var row=sec.rows[j];
+h=h+'<tr><td>'+row[0]+'</td><td class="v">'+row[1]+'</td></tr>';}
+h=h+'</tbody></table>';
+}
+if(sec.note)h=h+'<div class="inote">'+sec.note+'</div>';
+h=h+'</div>';
+}
+h=h+'</div>';
+}
+h=h+'</div>';
+ct.innerHTML=h;
+}
+
+function buildCardTable(){
+var h='<div class="cyc3"><table><thead><tr><th style="text-align:left">カード</th><th>末尾50G時</th><th>CZ失敗後</th></tr></thead><tbody>';
+for(var i=0;i<CARD_TABLE.length;i++){var c=CARD_TABLE[i];
+var hot=/滅びの丘/.test(c.czmode);
+h=h+'<tr'+(hot?' class="cur"':'')+'><td style="text-align:left;color:rgba(255,255,255,.75);font-weight:700"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+c.dot+';margin-right:5px"></span>'+c.nm+'</td>';
+h=h+'<td style="font-size:10px;color:'+(c.setuji==="—"?"rgba(255,255,255,.2)":"#80cbc4")+'">'+c.setuji+'</td>';
+h=h+'<td style="font-size:10px;color:'+(c.czmode==="—"?"rgba(255,255,255,.2)":(hot?"#FF7043":"#ce93d8"))+';font-weight:'+(hot?"800":"600")+'">'+c.czmode+'</td></tr>';
+}
+h=h+'</tbody></table></div>';
+h=h+'<div class="cc" style="margin-top:8px"><div class="cc-l">💡 末尾50G以外で「示唆が出ないからヤメ」は早計。次の50G境界まで回してから判断。</div></div>';
+return h;
+}
+
+function buildYame(){
+var h='';
+h=h+'<div class="cc"><div class="cc-t">AT後のフォロー手順</div>';
+h=h+'<div class="cc-l">① AT終了後は <span class="cc-hl">50G+α</span> の引き戻し状態（全役 1/2048）。最低ここまで回す。</div>';
+h=h+'<div class="cc-l">② AT後 <span class="cc-hl">100G到達</span> まで超高確示唆。<b style="color:#FFA726">超高確中はレア役成立でCZ確定</b>なので、超高確を抜けるまでフォロー。</div>';
+h=h+'<div class="cc-l">③ 末尾50Gでサブ液晶カードを確認（設定示唆／CZモード示唆の取りこぼし防止）。</div>';
+h=h+'<div class="cc-sub">発射場ステージ＝超高確示唆。AT後はステージにも注目。</div></div>';
+h=h+'<div class="cc" style="margin-top:6px"><div class="cc-t">ヤメる前チェックリスト</div>';
+h=h+'<div class="cc-l">□ 50G+αの引き戻し区間を消化したか</div>';
+h=h+'<div class="cc-l">□ 超高確（発射場等）を抜けたか</div>';
+h=h+'<div class="cc-l">□ 直近の末尾50Gでカードを見たか</div>';
+h=h+'<div class="cc-l">□ ココポイント残量・終了画面を確認したか</div></div>';
+return h;
+}
+
+function buildTenjo(){
+var h='<div class="cyc3"><table><thead><tr><th>項目</th><th>ゲーム数</th></tr></thead><tbody>';
+h=h+'<tr><td style="font-weight:700;color:rgba(255,255,255,.7)">仮天井</td><td style="color:#4DD0E1">450G+α</td></tr>';
+h=h+'<tr><td style="font-weight:700;color:rgba(255,255,255,.7)">天井</td><td style="color:#FFA726">999G+α</td></tr>';
+h=h+'</tbody></table></div>';
+h=h+'<div class="cc" style="margin-top:8px"><div class="cc-t">狙い目の考え方</div>';
+h=h+'<div class="cc-l">・<b style="color:#FFA726">設定変更後／恥の世紀(上位CZ)終了後</b>は仮天井(450G+α)が確定。</div>';
+h=h+'<div class="cc-l">・前日「恥の世紀失敗→ヤメ」の据え置き台は仮天井が残っており、<span class="cc-hl">前日最終G+200G〜</span>から狙える。</div>';
+h=h+'<div class="cc-l">・通常の天井狙いは状況に応じて中盤以降から。仮天井圏なら早めから期待値。</div>';
+h=h+'<div class="cc-sub">450G前兆の最終ゲームで第3停止をねじり「ねじれココランプ」点灯ならAT濃厚。</div></div>';
+h=h+'<div class="cc" style="margin-top:6px"><div class="cc-t">有利区間開始時の初期ココポイント</div>';
+h=h+'<div class="cc-l">0pt:25% / 100pt:25% / 200pt:19.9% / 300pt:14.8% / 400pt:10.2% / 500pt:5.1%</div>';
+h=h+'<div class="cc-sub">約50%が200pt以上スタート。リセット後は早い当たりにも期待できる。</div></div>';
+return h;
+}
+
+function buildReset(){
+var h='';
+h=h+'<div class="cc"><div class="cc-t">朝イチ判別（ハサミ打ち推奨）</div>';
+h=h+'<div class="cc-l">左→右のハサミ打ちで、右下がりにベルがテンパイ → 通常は押し順正解で右下がりベルが揃う。</div>';
+h=h+'<div class="cc-l"><b style="color:#FFA726">設定変更時のみ</b>、右下がりベルテンパイから<b>ハズレ</b>が停止する可能性あり。</div>';
+h=h+'<div class="cc-sub">→ 朝イチ数ゲームはハサミ打ちで消化し、ベルテンパイハズレが出れば設定変更の可能性。</div></div>';
+h=h+'<div class="cc" style="margin-top:6px"><div class="cc-t">朝イチ挙動まとめ</div>';
+h=h+'<div class="cc-l">設定変更：内部状態リセット／天井450G+αに短縮</div>';
+h=h+'<div class="cc-l">電源OFF/ON（据え置き）：内部状態・天井とも引き継ぎ</div></div>';
+return h;
+}
+
+function buildState(){
+var h='';
+h=h+'<div class="cc"><div class="cc-t">通常時ステージ（内部状態示唆）</div>';
+h=h+'<div class="cc-l">ホテル/訓練場：基本　／　<span class="cc-hl">ジャカルタ＝高確示唆</span>　／　<b style="color:#FFA726">発射場＝超高確示唆</b></div>';
+h=h+'<div class="cc-sub">超高確中はレア役でCZ濃厚、リプレイでも1/128でCZ抽選。発射場を見たら必ずレア役までフォロー。</div></div>';
+h=h+'<div class="cc" style="margin-top:6px"><div class="cc-t">超高確 移行ゲーム（百の位が奇数）</div>';
+h=h+'<div class="cc-l"><b style="color:#FFA726">100G=100% / 300G=100%</b> / 500G=50% / 700G=25% / 900G=25%</div>';
+h=h+'<div class="cc-l">200/400/600/800G=各5.1%（偶数のゾーンは薄い）</div>';
+h=h+'<div class="cc-sub">百の位が奇数になるゲーム数の手前は超高確移行のチャンスゾーン。特に100G・300Gは移行濃厚。</div></div>';
+h=h+'<div class="cc" style="margin-top:6px"><div class="cc-t">高確移行・保証</div>';
+h=h+'<div class="cc-l">弱チェリー・スイカで通常→高確を抽選（通常時29.7%／AT中49.6%）。(超)高確移行時は15G保証。</div></div>';
+return h;
+}
+
+function buildAtGuide(){
+var h='';
+h=h+'<div class="cc"><div class="cc-t">キャスパーモード（ベル連を見抜く）</div>';
+h=h+'<div class="cc-l">AT中は<b style="color:#FFA726">ベル5連以上の1/256</b>でキャスパーモード当選。</div>';
+h=h+'<div class="cc-l">ベルこぼし・押し順1枚ベルもベル連に含む。<span class="cc-hl">ココポイントが1pt以外を獲得＝ベル連継続濃厚</span>（見た目で揃ってなくても継続中の場合あり）。</div>';
+h=h+'<div class="cc-sub">ポイント獲得数に注目すればベル連の継続を見抜ける。</div></div>';
+h=h+'<div class="cc" style="margin-top:6px"><div class="cc-t">ストーリー（AT中のメインCZ・成功約60%）</div>';
+h=h+'<div class="cc-l">前半プロローグで対応役を増やし、後半ジャッジ3G内に対応役を引けば成功。点灯数が多いほど成功率UP（全点灯=100%）。</div>';
+h=h+'<div class="cc-l">3回成功で<b style="color:#FFA726">パーフェクトチャレンジ＝上位AT</b>のチャンス。レア役なら成功濃厚。</div>';
+h=h+'<div class="cc-sub">青BAR停止(約1/3.2)で対応役が増える。狙え発生時は青BAR狙い。</div></div>';
+h=h+'<div class="cc" style="margin-top:6px"><div class="cc-t">AT中ステージ</div>';
+h=h+'<div class="cc-l">山林：基本　／　船上＝高確示唆　／　<b style="color:#FFA726">墓前＝超高確示唆</b>（レア役でストーリー濃厚）</div></div>';
+h=h+'<div class="cc" style="margin-top:6px"><div class="cc-t">上位ATルート</div>';
+h=h+'<div class="cc-l">滅びの丘（上位AT約50%）／パーフェクトチャレンジ（上位AT濃厚）／エンディング後の恥の世紀（成功で上位ATループ）</div>';
+h=h+'<div class="cc-sub">上位AT中は純増約5.0枚／ボーナス全てBB以上。恥の世紀成功でループ。</div></div>';
+return h;
+}
+
+function buildNeji(){
+var h='<div class="cyc3"><table><thead><tr><th style="text-align:left">状態</th><th>ねじるタイミング</th></tr></thead><tbody>';
+var rows=[
+["通常時","450G〜の前兆 連続演出 最終G"],
+["シューティングゾーン","小役成立G（75%で点灯）"],
+["滅びの丘","毎ゲーム（点灯で次Gフリーズ濃厚）"],
+["パーフェクトチャレンジ","当該G（点灯で成功濃厚）"],
+["AT中","連続演出 最終G"],
+["恥の世紀","「なんとかしてくれよ」表示G（75%）"]
+];
+for(var i=0;i<rows.length;i++)h=h+'<tr><td style="text-align:left;color:rgba(255,255,255,.7);font-weight:700">'+rows[i][0]+'</td><td style="font-size:10px;color:#80cbc4">'+rows[i][1]+'</td></tr>';
+h=h+'</tbody></table></div>';
+h=h+'<div class="cc" style="margin-top:8px"><div class="cc-l">第3停止ボタンをひねって<b style="color:#FFA726">ねじれココランプ</b>が点灯すれば、その状況に応じた恩恵が濃厚（通常時点灯ならAT濃厚）。</div>';
+h=h+'<div class="cc-sub">上記以外にもねじりポイントあり。ここぞの場面で第3停止をねじってみる価値あり。</div></div>';
+return h;
+}
+
 /* === 出力タブ === */
 function rExp(){
 var ct=document.getElementById("ct"),s=stats(),tG=totalG();
@@ -650,13 +998,26 @@ if(s.hajiRare>0)t=t+"　うちレア役成功: "+s.hajiRareS+"/"+s.hajiRare+" ("
 if(tG>0&&s.czNormal>0){var v=tG/s.czNormal;var e=estX("cz",v);t=t+"CZ(通常時): 1/"+v.toFixed(1)+" ["+s.czNormal+"回]"+(e?" →設"+e+"付近":"")+"\n"}
 if(s.czNormal>0)t=t+"CZ成功(通常): "+s.czNormalS+"/"+s.czNormal+" ("+rate(s.czNormalS,s.czNormal)+"%)\n";
 if(s.czKakutei>0)t=t+"確定CZ: "+s.czKakutei+"回（分母除外）\n";
+if(s.czCoco||s.czRare||s.czOther)t=t+"　契機内訳: ココP"+s.czCoco+" / レア役"+s.czRare+" / その他"+s.czOther+"\n";
 if(tG>0&&s.atFirst>0){var v2=tG/s.atFirst;var e2=estX("at",v2);t=t+"AT初当たり: 1/"+v2.toFixed(1)+" ["+s.atFirst+"回]"+(e2?" →設"+e2+"付近":"")+"\n"}
 t=t+"RB:"+s.rb+" BB:"+s.bb+" ヨルムンBN:"+s.yoru+" 上位AT:"+s.upat+"\n";
 if(CC.kariTotal>0){var kr=rate(CC.kari450,CC.kariTotal);var ek=estPct(KARI,parseFloat(kr));t=t+"仮天井選択率: "+CC.kari450+"/"+CC.kariTotal+" ("+kr+"%)"+(ek?" →設"+ek+"付近":"")+"\n"}
+/* レア役別CZ当選率 */
+var rcD=[
+["チャンス目・通常","chOuN_t","chOuN_w",RARECZ.chOuNormal,false],
+["チャンス目・高確","chOuH_t","chOuH_w",RARECZ.chOuHigh,true],
+["強チェリー・通常","cheN_t","cheN_w",RARECZ.cheNormal,false],
+["強チェリー・高確","cheH_t","cheH_w",RARECZ.cheHigh,true],
+["弱レア・高確","weakH_t","weakH_w",RARECZ.weakHigh,false]];
+var rcAny=false;for(var rq=0;rq<rcD.length;rq++)if((CC[rcD[rq][1]]||0)>0)rcAny=true;
+if(rcAny){t=t+"【レア役別CZ当選率】\n";
+for(var rq2=0;rq2<rcD.length;rq2++){var dD=rcD[rq2];var tt=CC[dD[1]]||0,ww=CC[dD[2]]||0;if(tt<=0)continue;
+var prp=ww/tt*100;var ee=estPct(dD[3],prp);var lab=ee?(dD[4]&&ee>=4?"設4以上":"設"+ee):"";
+t=t+"  "+dD[0]+": "+ww+"/"+tt+" ("+prp.toFixed(1)+"%)"+(lab?" →"+lab+"付近":"")+"\n";}}
 /* 示唆 */
 var sugg=[];
 var labelMap={};CNTS.forEach(function(sec){sec.items.forEach(function(it){labelMap[it.k]=it.l})});
-["cUgo","cTojo","cWairi","cLehm","cYoKo","rBlueA","rBlueB","rBlueC","rGreen","rRed","rGold",
+["cUgo","cTojo","cWairi","cLehm","cYoKo","rgA","rgB","rgC","rgD","rgE","rgF",
 "eHaka","eYugata","eBalme","eHandgun","eKoko","eCasper","eKakashi"].forEach(function(k){
 if(CC[k]>0)sugg.push(labelMap[k]+"×"+CC[k]);});
 if(sugg.length)t=t+"示唆: "+sugg.join(" / ")+"\n";
@@ -673,14 +1034,14 @@ var e={ev:curEv,g:curG||"0"};
 if(curRes)e.res=curRes;
 if(curNote)e.note=curNote;
 if(curMai)e.mai=curMai;
-if(curEv==="cz"){e.cztrig=curCztrig||"normal"}      /* 未選択は通常時扱い */
+if(curEv==="cz"){e.cztrig=curCztrig||"other";if(curRes==="f"&&curCzcard&&curCzcard!=="none")e.czcard=curCzcard}      /* 未選択はその他(通常時扱い) */
 if(curEv==="haji"){if(curHrare)e.hrare=curHrare}
 if(curEv==="bnend"){if(curScr)e.scr=curScr}
 /* AT/BN状態フラグ */
 if(curEv==="at"||curEv==="upat"||curEv==="rb"||curEv==="bb"||curEv==="yoru")inAT=true;
 if(curEv==="bnend")inAT=false;
 LOG.push(e);
-curEv=null;curG="";curRes=null;curCztrig=null;curKari=null;curScr=null;curNote="";curMai="";curHrare=null;
+curEv=null;curG="";curRes=null;curCztrig=null;curKari=null;curScr=null;curNote="";curMai="";curHrare=null;curCzcard=null;
 save();render()}
 
 function doRst(){
@@ -692,15 +1053,18 @@ document.getElementById("W").addEventListener("click",function(ev){
 var el=ev.target;
 for(var i=0;i<6&&el&&el!==this;i++){if(el.dataset){
 if(el.dataset.tab){TAB=el.dataset.tab;render();return}
-if(el.dataset.ev){curEv=(curEv===el.dataset.ev?null:el.dataset.ev);curRes=null;curCztrig=null;curScr=null;curMai="";curHrare=null;render();return}
+if(el.dataset.ev){curEv=(curEv===el.dataset.ev?null:el.dataset.ev);curRes=null;curCztrig=null;curScr=null;curMai="";curHrare=null;curCzcard=null;render();return}
 if(el.dataset.res){curRes=(curRes===el.dataset.res?null:el.dataset.res);render();return}
 if(el.dataset.cztrig){curCztrig=(curCztrig===el.dataset.cztrig?null:el.dataset.cztrig);render();return}
 if(el.dataset.hrare){curHrare=(curHrare===el.dataset.hrare?null:el.dataset.hrare);render();return}
+if(el.dataset.czcard){curCzcard=(curCzcard===el.dataset.czcard?null:el.dataset.czcard);render();return}
 if(el.dataset.scr){curScr=(curScr===el.dataset.scr?null:el.dataset.scr);render();return}
 if(el.dataset.a==="add"){addEntry();return}
 if(el.dataset.del!==undefined){LOG.splice(parseInt(el.dataset.del),1);save();load();render();return}
 if(el.dataset.tog){COL[el.dataset.tog]=!COL[el.dataset.tog];render();return}
 if(el.dataset.itog){infoCol[el.dataset.itog]=!infoCol[el.dataset.itog];render();return}
+if(el.dataset.gtog){guideCol[el.dataset.gtog]=!guideCol[el.dataset.gtog];render();return}
+if(el.dataset.cztab){czTab=el.dataset.cztab;render();return}
 /* 恥の世紀クイックカウンター：突入(ent)/成功(suc)を直接LOGに反映 */
 if(el.dataset.hcnt){
 var act=el.dataset.hcnt;
